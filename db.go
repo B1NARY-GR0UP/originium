@@ -125,13 +125,13 @@ func (db *DB) Get(key string) ([]byte, bool) {
 	// search memtable
 	mtEntry, ok := db.memtable.get(key)
 	if ok {
-		return result(mtEntry)
+		return value(mtEntry)
 	}
 
 	// search sstables
 	sstEntry, ok := db.manager.search(key)
 	if ok {
-		return result(sstEntry)
+		return value(sstEntry)
 	}
 	return nil, false
 }
@@ -157,7 +157,7 @@ func (db *DB) flushImmutable(imt *memtable) {
 	}
 }
 
-func result(entry types.Entry) ([]byte, bool) {
+func value(entry types.Entry) ([]byte, bool) {
 	if entry.Tombstone {
 		return nil, false
 	}
