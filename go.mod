@@ -6,6 +6,7 @@ require (
 	github.com/apache/thrift v0.19.0
 	github.com/cloudwego/frugal v0.2.1
 	github.com/klauspost/compress v1.17.11
+	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.9.0
 )
 
