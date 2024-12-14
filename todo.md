@@ -1,4 +1,4 @@
-- [ ] bloom filter (used to optimize search non-exist key)
+- [x] bloom filter (used to optimize search non-exist key)
 - [ ] range get
 - [ ] tx
 - [ ] restrict sstable size (maybe need a goroutine to check size, then divide or merge)

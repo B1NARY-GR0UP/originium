@@ -1,11 +1,28 @@
+// Copyright 2024 BINARY Members
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package filter
 
 import (
 	"hash"
 	"math"
 
+	"github.com/B1NARY-GR0UP/originium/pkg/types"
 	"github.com/spaolacci/murmur3"
 )
+
+const _defaultP = 0.01
 
 type Filter struct {
 	bitset  []bool
@@ -34,6 +51,14 @@ func New(n int, p float64) *Filter {
 		hashFns: hashFns,
 		m:       m,
 	}
+}
+
+func Build(kvs []types.Entry) *Filter {
+	filter := New(len(kvs), _defaultP)
+	for _, e := range kvs {
+		filter.Add(e.Key)
+	}
+	return filter
 }
 
 // Add adds an element to the BloomFilter.

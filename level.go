@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/B1NARY-GR0UP/originium/pkg/filter"
 	"github.com/B1NARY-GR0UP/originium/pkg/kway"
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
 	"github.com/B1NARY-GR0UP/originium/pkg/types"
@@ -43,8 +44,12 @@ type levelManager struct {
 }
 
 type tableHandle struct {
-	levelIdx     int
-	dataBlockIdx sstable.Index
+	// list index of table within a level
+	levelIdx int
+	// bloom filter
+	filter filter.Filter
+	// index of data blocks in this sstable
+	dataBlockIndex sstable.Index
 }
 
 func newLevelManager(dir string, l0TargetNum, ratio, blockSize int) *levelManager {
@@ -91,6 +96,7 @@ func (lm *levelManager) recover() {
 			lm.logger.Panicf("failed to open file %s: %v", file, err)
 		}
 
+		// read and decode footer
 		_, err = fd.Seek(-40, io.SeekEnd)
 		if err != nil {
 			lm.logger.Panicf("failed to seek footer: %v", err)
@@ -107,6 +113,7 @@ func (lm *levelManager) recover() {
 			lm.logger.Panicf("failed to decode footer: %v", err)
 		}
 
+		// read and decode index block
 		_, err = fd.Seek(int64(footer.IndexBlock.Offset), io.SeekStart)
 		if err != nil {
 			lm.logger.Panicf("failed to seek index: %v", err)
@@ -123,13 +130,34 @@ func (lm *levelManager) recover() {
 			lm.logger.Panicf("failed to decode index: %v", err)
 		}
 
+		// read and decode data blocks
+		_, err = fd.Seek(int64(index.DataBlock.Offset), io.SeekStart)
+		if err != nil {
+			lm.logger.Panicf("failed to seek data block: %v", err)
+		}
+
+		dataBlockBytes := make([]byte, index.DataBlock.Length)
+		_, err = fd.Read(dataBlockBytes)
+		if err != nil {
+			lm.logger.Panicf("failed to read data block: %v", err)
+		}
+
+		var dataBlock sstable.Data
+		if err = dataBlock.Decode(dataBlockBytes); err != nil {
+			lm.logger.Panicf("failed to decode data block: %v", err)
+		}
+
+		// build bloom filter
+		bf := filter.Build(dataBlock.Entries)
+
 		for len(lm.levels) <= level {
 			lm.levels = append(lm.levels, list.New())
 		}
 
 		th := tableHandle{
-			levelIdx:     idx,
-			dataBlockIdx: index,
+			levelIdx:       idx,
+			filter:         *bf,
+			dataBlockIndex: index,
 		}
 
 		lm.levels[level].PushBack(th)
@@ -147,11 +175,20 @@ func (lm *levelManager) search(key types.Key) (types.Entry, bool) {
 	for level, tables := range lm.levels {
 		for e := tables.Front(); e != nil; e = e.Next() {
 			th := e.Value.(tableHandle)
-			dataBlockHandle, ok := th.dataBlockIdx.Search(key)
+
+			// search bloom filter
+			if !th.filter.Contains(key) {
+				// not in this sstable, search next one
+				continue
+			}
+
+			// determine which data block the key is in
+			dataBlockHandle, ok := th.dataBlockIndex.Search(key)
 			if !ok {
 				// not in this sstable, search next one
 				continue
 			}
+
 			// in this sstable, search according to data block
 			entry, ok := lm.fetchAndSearch(key, level, th.levelIdx, dataBlockHandle)
 			if ok {
@@ -167,6 +204,9 @@ func (lm *levelManager) flushToL0(kvs []types.Entry) error {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
+	// new and build bloom filter
+	bf := filter.Build(kvs)
+	// build sstable
 	dataBlockIndex, tableBytes := sstable.Build(kvs, lm.dataBlockSize, 0)
 
 	// lazy init
@@ -176,8 +216,9 @@ func (lm *levelManager) flushToL0(kvs []types.Entry) error {
 
 	// table handle
 	th := tableHandle{
-		levelIdx:     lm.maxLevelIdx(0) + 1,
-		dataBlockIdx: dataBlockIndex,
+		levelIdx:       lm.maxLevelIdx(0) + 1,
+		filter:         *bf,
+		dataBlockIndex: dataBlockIndex,
 	}
 
 	// l0 list
@@ -202,8 +243,6 @@ func (lm *levelManager) flushToL0(kvs []types.Entry) error {
 
 	return nil
 }
-
-// TODO: split into checkTargetNum and fullCompact??
 
 func (lm *levelManager) checkAndCompact() {
 	lm.mu.Lock()
@@ -279,25 +318,29 @@ func (lm *levelManager) compactL0() {
 	// L1 data block entries
 	for _, table := range l1Tables {
 		th := table.Value.(tableHandle)
-		dataBlock := lm.fetch(1, th.levelIdx, th.dataBlockIdx.DataBlock)
+		dataBlock := lm.fetch(1, th.levelIdx, th.dataBlockIndex.DataBlock)
 		dataBlockList = append(dataBlockList, dataBlock.Entries)
 	}
 	// L0 data block entries
 	for _, table := range l0Tables {
 		th := table.Value.(tableHandle)
-		dataBlock := lm.fetch(0, th.levelIdx, th.dataBlockIdx.DataBlock)
+		dataBlock := lm.fetch(0, th.levelIdx, th.dataBlockIndex.DataBlock)
 		dataBlockList = append(dataBlockList, dataBlock.Entries)
 	}
 
 	// merge sstables
 	mergedEntries := kway.Merge(dataBlockList...)
+
+	// build new bloom filter
+	bf := filter.Build(mergedEntries)
 	// build new sstable
 	dataBlockIndex, tableBytes := sstable.Build(mergedEntries, lm.dataBlockSize, 1)
 
 	// table handle
 	th := tableHandle{
-		levelIdx:     lm.maxLevelIdx(1) + 1,
-		dataBlockIdx: dataBlockIndex,
+		levelIdx:       lm.maxLevelIdx(1) + 1,
+		filter:         *bf,
+		dataBlockIndex: dataBlockIndex,
 	}
 
 	// update index
@@ -363,22 +406,26 @@ func (lm *levelManager) compactLN(n int) {
 	// LN+1 data block entries
 	for _, table := range ln1Tables {
 		th := table.Value.(tableHandle)
-		dataBlockLN1 := lm.fetch(n+1, th.levelIdx, th.dataBlockIdx.DataBlock)
+		dataBlockLN1 := lm.fetch(n+1, th.levelIdx, th.dataBlockIndex.DataBlock)
 		dataBlockList = append(dataBlockList, dataBlockLN1.Entries)
 	}
 	// LN data block entries
-	dataBlockLN := lm.fetch(n, lnTable.Value.(tableHandle).levelIdx, lnTable.Value.(tableHandle).dataBlockIdx.DataBlock)
+	dataBlockLN := lm.fetch(n, lnTable.Value.(tableHandle).levelIdx, lnTable.Value.(tableHandle).dataBlockIndex.DataBlock)
 	dataBlockList = append(dataBlockList, dataBlockLN.Entries)
 
 	// merge sstables
 	mergedEntries := kway.Merge(dataBlockList...)
+
+	// build new bloom filter
+	bf := filter.Build(mergedEntries)
 	// build new sstable
 	dataBlockIndex, tableBytes := sstable.Build(mergedEntries, lm.dataBlockSize, n+1)
 
 	// table handle
 	th := tableHandle{
-		levelIdx:     lm.maxLevelIdx(n+1) + 1,
-		dataBlockIdx: dataBlockIndex,
+		levelIdx:       lm.maxLevelIdx(n+1) + 1,
+		filter:         *bf,
+		dataBlockIndex: dataBlockIndex,
 	}
 
 	// update index
@@ -421,7 +468,7 @@ func (lm *levelManager) compactLN(n int) {
 }
 
 func (lm *levelManager) overlapL0() []*list.Element {
-	frontIndex := lm.levels[0].Front().Value.(tableHandle).dataBlockIdx
+	frontIndex := lm.levels[0].Front().Value.(tableHandle).dataBlockIndex
 
 	startKey := frontIndex.Entries[0].StartKey
 	endKey := frontIndex.Entries[len(frontIndex.Entries)-1].EndKey
@@ -439,7 +486,7 @@ func (lm *levelManager) overlapLN(level int, start, end string) []*list.Element 
 
 	var overlaps []*list.Element
 	for e := ln.Front(); e != nil; e = e.Next() {
-		index := e.Value.(tableHandle).dataBlockIdx
+		index := e.Value.(tableHandle).dataBlockIndex
 		if index.Entries[0].StartKey <= end && index.Entries[len(index.Entries)-1].EndKey >= start {
 			overlaps = append(overlaps, e)
 		}
@@ -475,12 +522,12 @@ func parseFileName(name string) (int, int, error) {
 }
 
 func boundary(list ...*list.Element) (string, string) {
-	entries := list[0].Value.(tableHandle).dataBlockIdx.Entries
+	entries := list[0].Value.(tableHandle).dataBlockIndex.Entries
 	start := entries[0].StartKey
 	end := entries[len(entries)-1].EndKey
 
 	for _, e := range list {
-		index := e.Value.(tableHandle).dataBlockIdx
+		index := e.Value.(tableHandle).dataBlockIndex
 		currStart := index.Entries[0].StartKey
 		currEnd := index.Entries[len(index.Entries)-1].EndKey
 

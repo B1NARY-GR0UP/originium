@@ -15,6 +15,7 @@
 package sstable
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/B1NARY-GR0UP/originium/pkg/types"
@@ -66,4 +67,42 @@ func TestSearch(t *testing.T) {
 		assert.Equal(t, tt.found, found)
 		assert.Equal(t, tt.expected, entry)
 	}
+}
+
+func TestDataEncodeDecodeMultiple(t *testing.T) {
+	entries := []types.Entry{
+		{Key: "asy1", Value: []byte("value1"), Tombstone: false},
+		{Key: "kssdy2", Value: []byte("value2"), Tombstone: true},
+		{Key: "keyiiwadc", Value: []byte("value3"), Tombstone: false},
+		{Key: "y4", Value: []byte{}, Tombstone: true},
+		{Key: "sdasey1", Value: []byte("value1"), Tombstone: false},
+		{Key: "ooiney2", Value: []byte("value2"), Tombstone: true},
+		{Key: "iinnisaksady3", Value: []byte("value3"), Tombstone: false},
+		{Key: "kiiwadc", Value: []byte("value3"), Tombstone: false},
+		{Key: "4", Value: []byte{}, Tombstone: true},
+		{Key: "asy1", Value: []byte("value1"), Tombstone: false},
+		{Key: "ooey2", Value: []byte("value2"), Tombstone: true},
+		{Key: "iiissady3", Value: []byte("value3"), Tombstone: false},
+	}
+
+	// Create multiple Data objects
+	dataList := []Data{
+		{Entries: entries[:1]},
+		{Entries: entries[1:6]},
+		{Entries: entries[6:]},
+	}
+
+	var buf bytes.Buffer
+	// Encode each Data object separately
+	for _, data := range dataList {
+		encoded, err := data.Encode()
+		assert.NoError(t, err)
+		assert.NotNil(t, encoded)
+		buf.Write(encoded)
+	}
+
+	var data Data
+	err := data.Decode(buf.Bytes())
+	assert.NoError(t, err)
+	assert.Equal(t, entries, data.Entries)
 }
