@@ -72,16 +72,9 @@ func (s *SkipList) Size() int {
 
 func (s *SkipList) Set(entry types.Entry) {
 	curr := s.head
-	update := make([]*Element, s.maxLevel)
+	waitUpdate := make([]*Element, s.maxLevel)
 
-	for i := s.maxLevel - 1; i >= 0; i-- {
-		for curr.next[i] != nil && curr.next[i].Key < entry.Key {
-			curr = curr.next[i]
-		}
-		update[i] = curr
-	}
-
-	// update
+	// update entry
 	if curr.next[0] != nil && curr.next[0].Key == entry.Key {
 		s.size += len(entry.Value) - len(curr.next[0].Value)
 
@@ -91,12 +84,19 @@ func (s *SkipList) Set(entry types.Entry) {
 		return
 	}
 
-	// add
+	// add entry
+	for i := s.maxLevel - 1; i >= 0; i-- {
+		for curr.next[i] != nil && curr.next[i].Key < entry.Key {
+			curr = curr.next[i]
+		}
+		waitUpdate[i] = curr
+	}
+
 	level := s.randomLevel()
 
 	if level > s.level {
 		for i := s.level; i < level; i++ {
-			update[i] = s.head
+			waitUpdate[i] = s.head
 		}
 		s.level = level
 	}
@@ -111,13 +111,13 @@ func (s *SkipList) Set(entry types.Entry) {
 	}
 
 	for i := range level {
-		e.next[i] = update[i].next[i]
-		update[i].next[i] = e
+		e.next[i] = waitUpdate[i].next[i]
+		waitUpdate[i].next[i] = e
 	}
 	s.size += len(entry.Key) + len(entry.Value) + int(unsafe.Sizeof(entry.Tombstone)) + len(e.next)*int(unsafe.Sizeof((*Element)(nil)))
 }
 
-func (s *SkipList) Get(key string) (types.Entry, bool) {
+func (s *SkipList) Get(key types.Key) (types.Entry, bool) {
 	curr := s.head
 
 	for i := s.maxLevel - 1; i >= 0; i-- {
@@ -138,22 +138,47 @@ func (s *SkipList) Get(key string) (types.Entry, bool) {
 	return types.Entry{}, false
 }
 
-func (s *SkipList) All() []types.Entry {
-	var all []types.Entry
-	curr := s.head.next[0]
-	for curr != nil {
-		all = append(all, types.Entry{
+// Range [start, end)
+func (s *SkipList) Range(start, end types.Key) []types.Entry {
+	var result []types.Entry
+	curr := s.head
+
+	for i := s.maxLevel - 1; i >= 0; i-- {
+		for curr.next[i] != nil && curr.next[i].Key < start {
+			curr = curr.next[i]
+		}
+	}
+
+	curr = curr.next[0]
+
+	for curr != nil && curr.Key < end {
+		result = append(result, types.Entry{
 			Key:       curr.Key,
 			Value:     curr.Value,
 			Tombstone: curr.Tombstone,
 		})
 		curr = curr.next[0]
 	}
+
+	return result
+}
+
+func (s *SkipList) All() []types.Entry {
+	var all []types.Entry
+
+	for curr := s.head.next[0]; curr != nil; curr = curr.next[0] {
+		all = append(all, types.Entry{
+			Key:       curr.Key,
+			Value:     curr.Value,
+			Tombstone: curr.Tombstone,
+		})
+	}
+
 	return all
 }
 
-// Delete won't be used, use tombstone instead
-func (s *SkipList) Delete(key string) bool {
+// Delete won't be used, use tombstone in set instead
+func (s *SkipList) Delete(key types.Key) bool {
 	curr := s.head
 	update := make([]*Element, s.maxLevel)
 

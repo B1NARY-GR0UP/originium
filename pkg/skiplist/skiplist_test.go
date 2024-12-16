@@ -49,6 +49,36 @@ func TestSetAndGet(t *testing.T) {
 	assert.Equal(t, entry, result)
 }
 
+func TestRange(t *testing.T) {
+	sl := New(4, 0.5)
+	entries := []types.Entry{
+		{Key: "key1", Value: []byte("value1"), Tombstone: false},
+		{Key: "key2", Value: []byte("value2"), Tombstone: false},
+		{Key: "key3", Value: []byte("value3"), Tombstone: false},
+		{Key: "key4", Value: []byte("value4"), Tombstone: false},
+	}
+
+	for _, entry := range entries {
+		sl.Set(entry)
+	}
+
+	tests := []struct {
+		start, end string
+		expected   []types.Entry
+	}{
+		{"key1", "key3", entries[:2]},
+		{"key2", "key4", entries[1:3]},
+		{"key1", "key5", entries},
+		{"key3", "key3", nil},
+		{"key0", "key1", nil},
+	}
+
+	for _, tt := range tests {
+		result := sl.Range(tt.start, tt.end)
+		assert.Equal(t, tt.expected, result)
+	}
+}
+
 func TestGetNonExistent(t *testing.T) {
 	sl := New(4, 0.5)
 	result, found := sl.Get("nonexistent")
