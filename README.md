@@ -1,6 +1,6 @@
 ![ORIGINIUM](./images/ORIGINIUM.png)
 
-LSM based storage engine used by FOIVER system.
+LSM-Tree based storage engine used by FOIVER system.
 
 ## Install
 
