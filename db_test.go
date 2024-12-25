@@ -115,28 +115,28 @@ func TestScan(t *testing.T) {
 	tests := []struct {
 		start    string
 		end      string
-		expected []types.Entry
+		expected []types.KV
 	}{
-		{"key1", "key3", []types.Entry{
-			{Key: "key1", Value: []byte("value1"), Tombstone: false},
-			{Key: "key2", Value: []byte("value2"), Tombstone: false},
+		{"key1", "key3", []types.KV{
+			{K: "key1", V: []byte("value1")},
+			{K: "key2", V: []byte("value2")},
 		}},
-		{"key2", "key5", []types.Entry{
-			{Key: "key2", Value: []byte("value2"), Tombstone: false},
-			{Key: "key3", Value: []byte("value3"), Tombstone: false},
-			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+		{"key2", "key5", []types.KV{
+			{K: "key2", V: []byte("value2")},
+			{K: "key3", V: []byte("value3")},
+			{K: "key4", V: []byte("value4")},
 		}},
-		{"key3", "key6", []types.Entry{
-			{Key: "key3", Value: []byte("value3"), Tombstone: false},
-			{Key: "key4", Value: []byte("value4"), Tombstone: false},
-			{Key: "key5", Value: []byte("value5"), Tombstone: false},
+		{"key3", "key6", []types.KV{
+			{K: "key3", V: []byte("value3")},
+			{K: "key4", V: []byte("value4")},
+			{K: "key5", V: []byte("value5")},
 		}},
-		{"key0", "key6", []types.Entry{
-			{Key: "key1", Value: []byte("value1"), Tombstone: false},
-			{Key: "key2", Value: []byte("value2"), Tombstone: false},
-			{Key: "key3", Value: []byte("value3"), Tombstone: false},
-			{Key: "key4", Value: []byte("value4"), Tombstone: false},
-			{Key: "key5", Value: []byte("value5"), Tombstone: false},
+		{"key0", "key6", []types.KV{
+			{K: "key1", V: []byte("value1")},
+			{K: "key2", V: []byte("value2")},
+			{K: "key3", V: []byte("value3")},
+			{K: "key4", V: []byte("value4")},
+			{K: "key5", V: []byte("value5")},
 		}},
 		{"key6", "key7", nil},
 	}

@@ -14,6 +14,11 @@
 
 package types
 
+type KV struct {
+	K string
+	V []byte
+}
+
 type (
 	Key   = string
 	Value = []byte

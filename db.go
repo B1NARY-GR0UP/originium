@@ -16,11 +16,11 @@ package originium
 
 import (
 	"errors"
-	"github.com/B1NARY-GR0UP/originium/pkg/kway"
 	"os"
 	"sync"
 	"sync/atomic"
 
+	"github.com/B1NARY-GR0UP/originium/pkg/kway"
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
 	"github.com/B1NARY-GR0UP/originium/pkg/types"
 )
@@ -138,7 +138,7 @@ func (db *DB) Get(key string) ([]byte, bool) {
 }
 
 // Scan [start, end)
-func (db *DB) Scan(start, end string) []types.Entry {
+func (db *DB) Scan(start, end string) []types.KV {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -149,7 +149,7 @@ func (db *DB) Scan(start, end string) []types.Entry {
 	sstScan := db.manager.scan(start, end)
 
 	// merge result
-	return kway.Merge(sstScan, mtScan)
+	return kvs(kway.Merge(sstScan, mtScan))
 }
 
 func (db *DB) rawset(entry types.Entry) {
@@ -178,4 +178,18 @@ func value(entry types.Entry) ([]byte, bool) {
 		return nil, false
 	}
 	return entry.Value, true
+}
+
+func kvs(entries []types.Entry) []types.KV {
+	var res []types.KV
+	for _, entry := range entries {
+		if entry.Tombstone {
+			continue
+		}
+		res = append(res, types.KV{
+			K: entry.Key,
+			V: entry.Value,
+		})
+	}
+	return res
 }
