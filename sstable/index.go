@@ -25,6 +25,7 @@ import (
 
 // Index Block
 type Index struct {
+	// BlockHandle of all data blocks of this sstable
 	DataBlock BlockHandle
 	Entries   []IndexEntry
 }
@@ -64,6 +65,16 @@ func (i *Index) Search(key types.Key) (BlockHandle, bool) {
 		}
 	}
 	return BlockHandle{}, false
+}
+
+func (i *Index) Scan(start, end types.Key) []BlockHandle {
+	var res []BlockHandle
+	for _, entry := range i.Entries {
+		if entry.EndKey >= start && entry.StartKey <= end {
+			res = append(res, entry.DataHandle)
+		}
+	}
+	return res
 }
 
 func (i *Index) Encode() ([]byte, error) {

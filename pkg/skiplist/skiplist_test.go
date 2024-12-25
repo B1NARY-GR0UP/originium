@@ -74,7 +74,7 @@ func TestRange(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := sl.Range(tt.start, tt.end)
+		result := sl.Scan(tt.start, tt.end)
 		assert.Equal(t, tt.expected, result)
 	}
 }

@@ -29,6 +29,12 @@ db.Set("hello", []byte("originium"))
 v, ok := db.Get("hello")
 ```
 
+- **Scan**
+
+```go
+entries := db.Scan("start", "end")
+```
+
 - **Delete**
 
 ```go

@@ -15,6 +15,7 @@
 package originium
 
 import (
+	"github.com/B1NARY-GR0UP/originium/pkg/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,6 +81,70 @@ func TestSetAndGet(t *testing.T) {
 	result, found := db.Get(key)
 	assert.True(t, found)
 	assert.Equal(t, value, result)
+}
+
+func TestScan(t *testing.T) {
+	dir := t.TempDir()
+	config := Config{
+		SkipListMaxLevel:       4,
+		SkipListP:              0.5,
+		L0TargetNum:            1,
+		LevelRatio:             2,
+		DataBlockByteThreshold: 10,
+		MemtableByteThreshold:  50,
+	}
+
+	db, err := Open(dir, config)
+	defer db.Close()
+	assert.NoError(t, err)
+	assert.NotNil(t, db)
+
+	// Insert test data
+	entries := []types.Entry{
+		{Key: "key1", Value: []byte("value1"), Tombstone: false},
+		{Key: "key2", Value: []byte("value2"), Tombstone: false},
+		{Key: "key3", Value: []byte("value3"), Tombstone: false},
+		{Key: "key4", Value: []byte("value4"), Tombstone: false},
+		{Key: "key5", Value: []byte("value5"), Tombstone: false},
+	}
+
+	for _, entry := range entries {
+		db.Set(entry.Key, entry.Value)
+	}
+
+	tests := []struct {
+		start    string
+		end      string
+		expected []types.Entry
+	}{
+		{"key1", "key3", []types.Entry{
+			{Key: "key1", Value: []byte("value1"), Tombstone: false},
+			{Key: "key2", Value: []byte("value2"), Tombstone: false},
+		}},
+		{"key2", "key5", []types.Entry{
+			{Key: "key2", Value: []byte("value2"), Tombstone: false},
+			{Key: "key3", Value: []byte("value3"), Tombstone: false},
+			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+		}},
+		{"key3", "key6", []types.Entry{
+			{Key: "key3", Value: []byte("value3"), Tombstone: false},
+			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+			{Key: "key5", Value: []byte("value5"), Tombstone: false},
+		}},
+		{"key0", "key6", []types.Entry{
+			{Key: "key1", Value: []byte("value1"), Tombstone: false},
+			{Key: "key2", Value: []byte("value2"), Tombstone: false},
+			{Key: "key3", Value: []byte("value3"), Tombstone: false},
+			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+			{Key: "key5", Value: []byte("value5"), Tombstone: false},
+		}},
+		{"key6", "key7", nil},
+	}
+
+	for _, tt := range tests {
+		result := db.Scan(tt.start, tt.end)
+		assert.Equal(t, tt.expected, result)
+	}
 }
 
 func TestDelete(t *testing.T) {

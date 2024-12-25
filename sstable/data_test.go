@@ -106,3 +106,49 @@ func TestDataEncodeDecodeMultiple(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, entries, data.Entries)
 }
+
+func TestScan(t *testing.T) {
+	data := Data{
+		Entries: []types.Entry{
+			{Key: "key1", Value: []byte("value1"), Tombstone: false},
+			{Key: "key2", Value: []byte("value2"), Tombstone: true},
+			{Key: "key3", Value: []byte("value3"), Tombstone: false},
+			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+			{Key: "key5", Value: []byte("value5"), Tombstone: true},
+		},
+	}
+
+	tests := []struct {
+		start    string
+		end      string
+		expected []types.Entry
+	}{
+		{"key1", "key3", []types.Entry{
+			{Key: "key1", Value: []byte("value1"), Tombstone: false},
+			{Key: "key2", Value: []byte("value2"), Tombstone: true},
+		}},
+		{"key2", "key5", []types.Entry{
+			{Key: "key2", Value: []byte("value2"), Tombstone: true},
+			{Key: "key3", Value: []byte("value3"), Tombstone: false},
+			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+		}},
+		{"key3", "key6", []types.Entry{
+			{Key: "key3", Value: []byte("value3"), Tombstone: false},
+			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+			{Key: "key5", Value: []byte("value5"), Tombstone: true},
+		}},
+		{"key0", "key6", []types.Entry{
+			{Key: "key1", Value: []byte("value1"), Tombstone: false},
+			{Key: "key2", Value: []byte("value2"), Tombstone: true},
+			{Key: "key3", Value: []byte("value3"), Tombstone: false},
+			{Key: "key4", Value: []byte("value4"), Tombstone: false},
+			{Key: "key5", Value: []byte("value5"), Tombstone: true},
+		}},
+		{"key6", "key7", nil},
+	}
+
+	for _, tt := range tests {
+		result := data.Scan(tt.start, tt.end)
+		assert.Equal(t, tt.expected, result)
+	}
+}

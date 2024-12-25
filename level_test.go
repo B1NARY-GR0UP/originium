@@ -54,6 +54,37 @@ func TestSearch(t *testing.T) {
 	assert.False(t, found)
 }
 
+func TestManagerScan(t *testing.T) {
+	dir := t.TempDir()
+	lm := newLevelManager(dir, 4, 10, 4096)
+
+	kvs := []types.Entry{
+		{Key: "key1", Value: []byte("value1")},
+		{Key: "key2", Value: []byte("value2")},
+		{Key: "key3", Value: []byte("value3")},
+		{Key: "key4", Value: []byte("value4")},
+		{Key: "key5", Value: []byte("value5")},
+		{Key: "key6", Value: []byte("value6")},
+	}
+
+	err := lm.flushToL0(kvs)
+	assert.NoError(t, err)
+
+	// Perform scan
+	entries := lm.scan("key2", "key5")
+	expectedEntries := []types.Entry{
+		{Key: "key2", Value: []byte("value2")},
+		{Key: "key3", Value: []byte("value3")},
+		{Key: "key4", Value: []byte("value4")},
+	}
+
+	assert.Equal(t, expectedEntries, entries)
+
+	// Test scan with no results
+	entries = lm.scan("key7", "key8")
+	assert.Empty(t, entries)
+}
+
 func TestCompact(t *testing.T) {
 	lm := newLevelManager(t.TempDir(), 1, 2, 500)
 

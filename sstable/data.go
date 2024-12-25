@@ -43,6 +43,34 @@ func (d *Data) Search(key types.Key) (types.Entry, bool) {
 	return types.Entry{}, false
 }
 
+func (d *Data) Scan(start, end types.Key) []types.Entry {
+	var res []types.Entry
+	var found bool
+	low, high := 0, len(d.Entries)-1
+
+	// find the first key >= start
+	var mid int
+	for low <= high {
+		mid = low + ((high - low) >> 1)
+		if d.Entries[mid].Key >= start {
+			if mid == 0 || d.Entries[mid-1].Key < start {
+				// used as return
+				found = true
+				break
+			}
+			high = mid - 1
+		} else {
+			low = mid + 1
+		}
+	}
+
+	for i := mid; i < len(d.Entries) && d.Entries[i].Key < end && found; i++ {
+		res = append(res, d.Entries[i])
+	}
+
+	return res
+}
+
 func (d *Data) Encode() ([]byte, error) {
 	buf := bufferpool.Pool.Get()
 	defer bufferpool.Pool.Put(buf)

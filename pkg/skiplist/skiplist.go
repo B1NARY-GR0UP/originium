@@ -138,9 +138,9 @@ func (s *SkipList) Get(key types.Key) (types.Entry, bool) {
 	return types.Entry{}, false
 }
 
-// Range [start, end)
-func (s *SkipList) Range(start, end types.Key) []types.Entry {
-	var result []types.Entry
+// Scan [start, end)
+func (s *SkipList) Scan(start, end types.Key) []types.Entry {
+	var res []types.Entry
 	curr := s.head
 
 	for i := s.maxLevel - 1; i >= 0; i-- {
@@ -152,7 +152,7 @@ func (s *SkipList) Range(start, end types.Key) []types.Entry {
 	curr = curr.next[0]
 
 	for curr != nil && curr.Key < end {
-		result = append(result, types.Entry{
+		res = append(res, types.Entry{
 			Key:       curr.Key,
 			Value:     curr.Value,
 			Tombstone: curr.Tombstone,
@@ -160,7 +160,7 @@ func (s *SkipList) Range(start, end types.Key) []types.Entry {
 		curr = curr.next[0]
 	}
 
-	return result
+	return res
 }
 
 func (s *SkipList) All() []types.Entry {

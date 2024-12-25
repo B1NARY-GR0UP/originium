@@ -116,6 +116,13 @@ func (mt *memtable) get(key types.Key) (types.Entry, bool) {
 	return mt.skiplist.Get(key)
 }
 
+func (mt *memtable) scan(start, end types.Key) []types.Entry {
+	mt.mu.RLock()
+	defer mt.mu.RUnlock()
+
+	return mt.skiplist.Scan(start, end)
+}
+
 func (mt *memtable) all() []types.Entry {
 	mt.mu.RLock()
 	defer mt.mu.RUnlock()

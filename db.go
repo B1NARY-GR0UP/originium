@@ -16,6 +16,7 @@ package originium
 
 import (
 	"errors"
+	"github.com/B1NARY-GR0UP/originium/pkg/kway"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -134,6 +135,21 @@ func (db *DB) Get(key string) ([]byte, bool) {
 		return value(sstEntry)
 	}
 	return nil, false
+}
+
+// Scan [start, end)
+func (db *DB) Scan(start, end string) []types.Entry {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	// scan memtable
+	mtScan := db.memtable.scan(start, end)
+
+	// scan sstables
+	sstScan := db.manager.scan(start, end)
+
+	// merge result
+	return kway.Merge(sstScan, mtScan)
 }
 
 func (db *DB) rawset(entry types.Entry) {

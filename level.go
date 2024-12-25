@@ -200,6 +200,39 @@ func (lm *levelManager) search(key types.Key) (types.Entry, bool) {
 	return types.Entry{}, false
 }
 
+func (lm *levelManager) scan(start, end types.Key) []types.Entry {
+	lm.mu.Lock()
+	defer lm.mu.Unlock()
+
+	if len(lm.levels) == 0 {
+		return nil
+	}
+
+	var entriesList [][]types.Entry
+	// scan L0 - LN
+	// sort and merge result
+	for level, tables := range lm.levels {
+		// tables in same level
+		var levelList [][]types.Entry
+		for e := tables.Front(); e != nil; e = e.Next() {
+			th := e.Value.(tableHandle)
+
+			// search the data blocks where the range in
+			dataBlockHandles := th.dataBlockIndex.Scan(start, end)
+
+			for _, handle := range dataBlockHandles {
+				entries := lm.fetchAndScan(start, end, level, th.levelIdx, handle)
+				levelList = append(levelList, entries)
+			}
+		}
+		slices.Reverse(levelList)
+		entriesList = append(entriesList, levelList...)
+	}
+	slices.Reverse(entriesList)
+
+	return kway.Merge(entriesList...)
+}
+
 func (lm *levelManager) flushToL0(kvs []types.Entry) error {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
@@ -292,6 +325,11 @@ func (lm *levelManager) fetch(level, idx int, handle sstable.BlockHandle) sstabl
 func (lm *levelManager) fetchAndSearch(key types.Key, level, idx int, handle sstable.BlockHandle) (types.Entry, bool) {
 	dataBlock := lm.fetch(level, idx, handle)
 	return dataBlock.Search(key)
+}
+
+func (lm *levelManager) fetchAndScan(start, end types.Key, level, idx int, handle sstable.BlockHandle) []types.Entry {
+	dataBlock := lm.fetch(level, idx, handle)
+	return dataBlock.Scan(start, end)
 }
 
 // L0 -> L1
