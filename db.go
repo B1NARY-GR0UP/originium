@@ -154,10 +154,12 @@ func (db *DB) Scan(start, end string) []types.KV {
 
 func (db *DB) rawset(entry types.Entry) {
 	db.memtable.set(entry)
+	// TODO: optimize, do not block set
 	if db.memtable.size() >= db.config.MemtableByteThreshold {
 		imt := db.memtable.freeze()
 		db.flushImmutable(imt)
 		db.manager.checkAndCompact()
+		// TODO: move in advance
 		db.memtable = db.memtable.reset()
 	}
 }
