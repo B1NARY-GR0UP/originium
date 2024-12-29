@@ -25,11 +25,15 @@ import (
 const _head = "HEAD"
 
 // SkipList
+//
 // Level 3:       3 ----------- 9 ----------- 21 --------- 26
 // Level 2:       3 ----- 6 ---- 9 ------ 19 -- 21 ---- 25 -- 26
 // Level 1:       3 -- 6 -- 7 -- 9 -- 12 -- 19 -- 21 -- 25 -- 26
 // next of Element 3 [ ->6, ->6, ->9 ]
 // next of Element 6 [ ->7, ->9 ]
+// next of head [ ->3, ->3, ->3 ]
+//
+// Element with same key only has one instance within the skip list
 type SkipList struct {
 	maxLevel int
 	p        float64
@@ -72,7 +76,14 @@ func (s *SkipList) Size() int {
 
 func (s *SkipList) Set(entry types.Entry) {
 	curr := s.head
-	waitUpdate := make([]*Element, s.maxLevel)
+	update := make([]*Element, s.maxLevel)
+
+	for i := s.maxLevel - 1; i >= 0; i-- {
+		for curr.next[i] != nil && curr.next[i].Key < entry.Key {
+			curr = curr.next[i]
+		}
+		update[i] = curr
+	}
 
 	// update entry
 	if curr.next[0] != nil && curr.next[0].Key == entry.Key {
@@ -85,18 +96,11 @@ func (s *SkipList) Set(entry types.Entry) {
 	}
 
 	// add entry
-	for i := s.maxLevel - 1; i >= 0; i-- {
-		for curr.next[i] != nil && curr.next[i].Key < entry.Key {
-			curr = curr.next[i]
-		}
-		waitUpdate[i] = curr
-	}
-
 	level := s.randomLevel()
 
 	if level > s.level {
 		for i := s.level; i < level; i++ {
-			waitUpdate[i] = s.head
+			update[i] = s.head
 		}
 		s.level = level
 	}
@@ -111,8 +115,8 @@ func (s *SkipList) Set(entry types.Entry) {
 	}
 
 	for i := range level {
-		e.next[i] = waitUpdate[i].next[i]
-		waitUpdate[i].next[i] = e
+		e.next[i] = update[i].next[i]
+		update[i].next[i] = e
 	}
 	s.size += len(entry.Key) + len(entry.Value) + int(unsafe.Sizeof(entry.Tombstone)) + len(e.next)*int(unsafe.Sizeof((*Element)(nil)))
 }
