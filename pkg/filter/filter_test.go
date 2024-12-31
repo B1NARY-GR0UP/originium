@@ -17,7 +17,23 @@ package filter
 import (
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func TestNoFalseNegatives(t *testing.T) {
+	n := 1000
+	p := 0.01
+	bf := New(n, p)
+
+	for i := 0; i < n; i++ {
+		bf.Add(strconv.Itoa(i))
+	}
+
+	for i := 0; i < n; i++ {
+		assert.True(t, bf.Contains(strconv.Itoa(i)), "Expected Bloom Filter to contain '%d', but it did not", i)
+	}
+}
 
 func TestFalsePositiveRate(t *testing.T) {
 	n := 1000

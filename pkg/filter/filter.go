@@ -27,13 +27,16 @@ const _defaultP = 0.01
 type Filter struct {
 	bitset  []bool
 	hashFns []hash.Hash32
-	m       int
 }
 
 // New creates a new BloomFilter with the given size and number of hash functions.
 // n: expected nums of elements
 // p: expected rate of false errors
 func New(n int, p float64) *Filter {
+	if n <= 0 || (p <= 0 || p >= 1) {
+		panic("invalid parameters")
+	}
+
 	// size of bitset
 	// m = -(n * ln(p)) / (ln(2)^2)
 	m := int(math.Ceil(-float64(n) * math.Log(p) / math.Pow(math.Log(2), 2)))
@@ -49,7 +52,6 @@ func New(n int, p float64) *Filter {
 	return &Filter{
 		bitset:  make([]bool, m),
 		hashFns: hashFns,
-		m:       m,
 	}
 }
 
@@ -65,7 +67,7 @@ func Build(kvs []types.Entry) *Filter {
 func (f *Filter) Add(key string) {
 	for _, fn := range f.hashFns {
 		_, _ = fn.Write([]byte(key))
-		index := int(fn.Sum32()) % f.m
+		index := int(fn.Sum32()) % len(f.bitset)
 		f.bitset[index] = true
 		fn.Reset()
 	}
@@ -75,7 +77,7 @@ func (f *Filter) Add(key string) {
 func (f *Filter) Contains(key string) bool {
 	for _, fn := range f.hashFns {
 		_, _ = fn.Write([]byte(key))
-		index := int(fn.Sum32()) % f.m
+		index := int(fn.Sum32()) % len(f.bitset)
 		fn.Reset()
 		if !f.bitset[index] {
 			return false
