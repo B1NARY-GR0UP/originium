@@ -27,7 +27,7 @@ const _magic uint64 = 0x5bc2aa5766250562
 var ErrInvalidMagic = errors.New("error invalid magic")
 
 // Footer
-// 32 + 32 + 8 = 40 bytes
+// 16 + 16 + 8 = 40 bytes
 type Footer struct {
 	MetaBlock  BlockHandle
 	IndexBlock BlockHandle
