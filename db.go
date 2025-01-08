@@ -15,8 +15,10 @@
 package originium
 
 import (
+	"container/list"
 	"errors"
 	"os"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -28,14 +30,21 @@ import (
 var errMkDir = errors.New("failed to create db dir")
 
 type DB struct {
-	once     sync.Once
-	mu       sync.RWMutex
-	config   Config
-	dir      string
-	memtable *memtable
-	manager  *levelManager
-	state    uint32
-	logger   logger.Logger
+	mu sync.RWMutex
+
+	config Config
+	logger logger.Logger
+	dir    string
+	state  uint32
+
+	memtable   *memtable
+	immutables *list.List
+	flushC     chan *memtable
+
+	manager *levelManager
+
+	closed chan struct{}
+	closeC chan struct{}
 }
 
 type State uint32
@@ -57,9 +66,13 @@ func Open(dir string, config Config) (*DB, error) {
 	}
 
 	db := &DB{
-		config: config,
-		dir:    dir,
-		logger: logger.GetLogger(),
+		config:     config,
+		dir:        dir,
+		logger:     logger.GetLogger(),
+		immutables: list.New(),
+		flushC:     make(chan *memtable, config.ImmutableBuffer),
+		closeC:     make(chan struct{}),
+		closed:     make(chan struct{}),
 	}
 
 	atomic.StoreUint32(&db.state, uint32(StateInitialize))
@@ -75,22 +88,25 @@ func Open(dir string, config Config) (*DB, error) {
 	db.memtable = mt
 	db.manager = lm
 
-	atomic.StoreUint32(&db.state, uint32(StateOpened))
+	go db.run()
 	return db, nil
 }
 
 func (db *DB) Close() {
-	db.once.Do(func() {
-		imt := db.memtable.freeze()
-		if imt.size() > 0 {
-			db.flushImmutable(imt)
-		} else {
-			if err := imt.wal.Delete(); err != nil {
-				db.logger.Panicf("failed to delete immutable wal file: %v", err)
-			}
+	defer atomic.StoreUint32(&db.state, uint32(StateClosed))
+	db.closeC <- struct{}{}
+
+	mt := db.memtable
+	mt.freeze()
+	if mt.size() > 0 {
+		db.flushImmutable(mt)
+	} else {
+		if err := mt.wal.Delete(); err != nil {
+			db.logger.Panicf("failed to delete immutable wal file: %v", err)
 		}
-		atomic.StoreUint32(&db.state, uint32(StateClosed))
-	})
+	}
+
+	<-db.closed
 }
 
 func (db *DB) State() State {
@@ -129,6 +145,15 @@ func (db *DB) Get(key string) ([]byte, bool) {
 		return value(mtEntry)
 	}
 
+	// search immutables
+	for e := db.immutables.Back(); e != nil; e = e.Prev() {
+		imt := e.Value.(*memtable)
+		imtEntry, ok := imt.get(key)
+		if ok {
+			return value(imtEntry)
+		}
+	}
+
 	// search sstables
 	sstEntry, ok := db.manager.search(key)
 	if ok {
@@ -142,24 +167,35 @@ func (db *DB) Scan(start, end string) []types.KV {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
+	var scan [][]types.Entry
+
 	// scan memtable
-	mtScan := db.memtable.scan(start, end)
+	scan = append(scan, db.memtable.scan(start, end))
+
+	// scan immutables
+	for e := db.immutables.Back(); e != nil; e = e.Prev() {
+		imt := e.Value.(*memtable)
+		scan = append(scan, imt.scan(start, end))
+	}
 
 	// scan sstables
-	sstScan := db.manager.scan(start, end)
+	scan = append(scan, db.manager.scan(start, end))
 
+	slices.Reverse(scan)
 	// merge result
-	return kvs(kway.Merge(sstScan, mtScan))
+	return kvs(kway.Merge(scan...))
 }
 
 func (db *DB) rawset(entry types.Entry) {
 	db.memtable.set(entry)
-	// TODO: optimize, do not block set
+
 	if db.memtable.size() >= db.config.MemtableByteThreshold {
-		imt := db.memtable.freeze()
-		db.flushImmutable(imt)
-		db.manager.checkAndCompact()
-		// TODO: move in advance
+		db.memtable.freeze()
+		imt := db.memtable
+
+		db.flushC <- imt
+		db.immutables.PushBack(imt)
+
 		db.memtable = db.memtable.reset()
 	}
 }
@@ -173,6 +209,34 @@ func (db *DB) flushImmutable(imt *memtable) {
 	if err := imt.wal.Delete(); err != nil {
 		db.logger.Panicf("failed to delete immutable wal file: %v", err)
 	}
+}
+
+func (db *DB) run() {
+	atomic.StoreUint32(&db.state, uint32(StateOpened))
+	var closed bool
+LOOP:
+	for {
+		select {
+		case imt := <-db.flushC:
+			db.flushImmutable(imt)
+			db.manager.checkAndCompact()
+
+			db.mu.Lock()
+			db.immutables.Remove(db.immutables.Back())
+			db.mu.Unlock()
+
+			if closed && len(db.flushC) == 0 {
+				break LOOP
+			}
+		case <-db.closeC:
+			closed = true
+			if len(db.flushC) > 0 {
+				continue
+			}
+			break LOOP
+		}
+	}
+	close(db.closed)
 }
 
 func value(entry types.Entry) ([]byte, bool) {

@@ -15,9 +15,10 @@
 package originium
 
 import (
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
 	"testing"
+	"time"
 
+	"github.com/B1NARY-GR0UP/originium/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,6 +36,8 @@ func TestOpen(t *testing.T) {
 	db, err := Open(dir, config)
 	assert.NoError(t, err)
 	assert.NotNil(t, db)
+	assert.Equal(t, StateInitialize, db.State())
+	time.Sleep(time.Second * 1)
 	assert.Equal(t, StateOpened, db.State())
 	db.Close()
 }
@@ -66,7 +69,8 @@ func TestSetAndGet(t *testing.T) {
 		L0TargetNum:            4,
 		LevelRatio:             10,
 		DataBlockByteThreshold: 4096,
-		MemtableByteThreshold:  1024,
+		MemtableByteThreshold:  5,
+		ImmutableBuffer:        10,
 	}
 
 	db, err := Open(dir, config)
@@ -92,6 +96,7 @@ func TestScan(t *testing.T) {
 		LevelRatio:             2,
 		DataBlockByteThreshold: 10,
 		MemtableByteThreshold:  50,
+		ImmutableBuffer:        10,
 	}
 
 	db, err := Open(dir, config)

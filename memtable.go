@@ -102,6 +102,10 @@ func (mt *memtable) set(entry types.Entry) {
 	mt.mu.Lock()
 	defer mt.mu.Unlock()
 
+	if mt.readOnly {
+		mt.logger.Panicf("write readonly memtable")
+	}
+
 	mt.skiplist.Set(entry)
 	if err := mt.wal.Write(entry); err != nil {
 		mt.logger.Panicf("write wal failed: %v", err)
@@ -137,20 +141,14 @@ func (mt *memtable) size() int {
 	return mt.skiplist.Size()
 }
 
-func (mt *memtable) freeze() *memtable {
+func (mt *memtable) freeze() {
 	mt.mu.Lock()
 	defer mt.mu.Unlock()
 
 	if err := mt.wal.Close(); err != nil {
 		mt.logger.Panicf("wal close failed: %v", err)
 	}
-	return &memtable{
-		logger:   logger.GetLogger(),
-		skiplist: mt.skiplist,
-		wal:      mt.wal,
-		dir:      mt.dir,
-		readOnly: true,
-	}
+	mt.readOnly = true
 }
 
 func (mt *memtable) reset() *memtable {

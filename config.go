@@ -27,6 +27,7 @@ type Config struct {
 	// Memtable Config
 	// memtable size threshold of turning to an immutable memtable
 	MemtableByteThreshold int
+	ImmutableBuffer       int
 
 	// SSTable Config
 	DataBlockByteThreshold int
@@ -40,6 +41,7 @@ var DefaultConfig = Config{
 	SkipListMaxLevel:       9,
 	SkipListP:              0.5,
 	MemtableByteThreshold:  4 * _mb,
+	ImmutableBuffer:        10,
 	DataBlockByteThreshold: 4 * _kb,
 	L0TargetNum:            5,
 	LevelRatio:             10,
