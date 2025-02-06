@@ -29,7 +29,7 @@ import (
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
 	"github.com/B1NARY-GR0UP/originium/pkg/types"
 	"github.com/B1NARY-GR0UP/originium/pkg/utils"
-	"github.com/B1NARY-GR0UP/originium/sstable"
+	"github.com/B1NARY-GR0UP/originium/table"
 )
 
 type levelManager struct {
@@ -49,7 +49,7 @@ type tableHandle struct {
 	// bloom filter
 	filter filter.Filter
 	// index of data blocks in this sstable
-	dataBlockIndex sstable.Index
+	dataBlockIndex table.Index
 }
 
 func newLevelManager(dir string, l0TargetNum, ratio, blockSize int) *levelManager {
@@ -108,7 +108,7 @@ func (lm *levelManager) recover() {
 			lm.logger.Panicf("failed to read footer: %v", err)
 		}
 
-		var footer sstable.Footer
+		var footer table.Footer
 		if err = footer.Decode(footerBytes); err != nil {
 			lm.logger.Panicf("failed to decode footer: %v", err)
 		}
@@ -125,7 +125,7 @@ func (lm *levelManager) recover() {
 			lm.logger.Panicf("failed to read index: %v", err)
 		}
 
-		var index sstable.Index
+		var index table.Index
 		if err = index.Decode(indexBytes); err != nil {
 			lm.logger.Panicf("failed to decode index: %v", err)
 		}
@@ -142,7 +142,7 @@ func (lm *levelManager) recover() {
 			lm.logger.Panicf("failed to read data block: %v", err)
 		}
 
-		var dataBlock sstable.Data
+		var dataBlock table.Data
 		if err = dataBlock.Decode(dataBlockBytes); err != nil {
 			lm.logger.Panicf("failed to decode data block: %v", err)
 		}
@@ -240,7 +240,7 @@ func (lm *levelManager) flushToL0(kvs []types.Entry) error {
 	// new and build bloom filter
 	bf := filter.Build(kvs)
 	// build sstable
-	dataBlockIndex, tableBytes := sstable.Build(kvs, lm.dataBlockSize, 0)
+	dataBlockIndex, tableBytes := table.Build(kvs, lm.dataBlockSize, 0)
 
 	// lazy init
 	if len(lm.levels) == 0 {
@@ -292,7 +292,7 @@ func (lm *levelManager) checkAndCompact() {
 	}
 }
 
-func (lm *levelManager) fetch(level, idx int, handle sstable.BlockHandle) sstable.Data {
+func (lm *levelManager) fetch(level, idx int, handle table.BlockHandle) table.Data {
 	fd, err := os.Open(lm.fileName(level, idx))
 	if err != nil {
 		lm.logger.Panicf("failed to open sstable: %v", err)
@@ -314,7 +314,7 @@ func (lm *levelManager) fetch(level, idx int, handle sstable.BlockHandle) sstabl
 		lm.logger.Panicf("failed to read sstable: %v", err)
 	}
 
-	var dataBlock sstable.Data
+	var dataBlock table.Data
 	if err = dataBlock.Decode(data); err != nil {
 		lm.logger.Panicf("failed to decode data block: %v", err)
 	}
@@ -322,12 +322,12 @@ func (lm *levelManager) fetch(level, idx int, handle sstable.BlockHandle) sstabl
 	return dataBlock
 }
 
-func (lm *levelManager) fetchAndSearch(key types.Key, level, idx int, handle sstable.BlockHandle) (types.Entry, bool) {
+func (lm *levelManager) fetchAndSearch(key types.Key, level, idx int, handle table.BlockHandle) (types.Entry, bool) {
 	dataBlock := lm.fetch(level, idx, handle)
 	return dataBlock.Search(key)
 }
 
-func (lm *levelManager) fetchAndScan(start, end types.Key, level, idx int, handle sstable.BlockHandle) []types.Entry {
+func (lm *levelManager) fetchAndScan(start, end types.Key, level, idx int, handle table.BlockHandle) []types.Entry {
 	dataBlock := lm.fetch(level, idx, handle)
 	return dataBlock.Scan(start, end)
 }
@@ -372,7 +372,7 @@ func (lm *levelManager) compactL0() {
 	// build new bloom filter
 	bf := filter.Build(mergedEntries)
 	// build new sstable
-	dataBlockIndex, tableBytes := sstable.Build(mergedEntries, lm.dataBlockSize, 1)
+	dataBlockIndex, tableBytes := table.Build(mergedEntries, lm.dataBlockSize, 1)
 
 	// table handle
 	th := tableHandle{
@@ -457,7 +457,7 @@ func (lm *levelManager) compactLN(n int) {
 	// build new bloom filter
 	bf := filter.Build(mergedEntries)
 	// build new sstable
-	dataBlockIndex, tableBytes := sstable.Build(mergedEntries, lm.dataBlockSize, n+1)
+	dataBlockIndex, tableBytes := table.Build(mergedEntries, lm.dataBlockSize, n+1)
 
 	// table handle
 	th := tableHandle{
