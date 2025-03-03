@@ -11,6 +11,7 @@ type Entry struct {
 	Key       string `thrift:"key,1" frugal:"1,default,string" json:"key"`
 	Value     []byte `thrift:"value,2" frugal:"2,default,binary" json:"value"`
 	Tombstone bool   `thrift:"tombstone,3" frugal:"3,default,bool" json:"tombstone"`
+	Version   int64  `thrift:"version,4" frugal:"4,default,i64" json:"version"`
 }
 
 func NewEntry() *Entry {
@@ -32,10 +33,15 @@ func (p *Entry) GetTombstone() (v bool) {
 	return p.Tombstone
 }
 
+func (p *Entry) GetVersion() (v int64) {
+	return p.Version
+}
+
 var fieldIDToName_Entry = map[int16]string{
 	1: "key",
 	2: "value",
 	3: "tombstone",
+	4: "version",
 }
 
 func (p *Entry) Read(iprot thrift.TProtocol) (err error) {
@@ -76,6 +82,14 @@ func (p *Entry) Read(iprot thrift.TProtocol) (err error) {
 		case 3:
 			if fieldTypeId == thrift.BOOL {
 				if err = p.ReadField3(iprot); err != nil {
+					goto ReadFieldError
+				}
+			} else if err = iprot.Skip(fieldTypeId); err != nil {
+				goto SkipFieldError
+			}
+		case 4:
+			if fieldTypeId == thrift.I64 {
+				if err = p.ReadField4(iprot); err != nil {
 					goto ReadFieldError
 				}
 			} else if err = iprot.Skip(fieldTypeId); err != nil {
@@ -143,6 +157,17 @@ func (p *Entry) ReadField3(iprot thrift.TProtocol) error {
 	p.Tombstone = _field
 	return nil
 }
+func (p *Entry) ReadField4(iprot thrift.TProtocol) error {
+
+	var _field int64
+	if v, err := iprot.ReadI64(); err != nil {
+		return err
+	} else {
+		_field = v
+	}
+	p.Version = _field
+	return nil
+}
 
 func (p *Entry) Write(oprot thrift.TProtocol) (err error) {
 	var fieldId int16
@@ -160,6 +185,10 @@ func (p *Entry) Write(oprot thrift.TProtocol) (err error) {
 		}
 		if err = p.writeField3(oprot); err != nil {
 			fieldId = 3
+			goto WriteFieldError
+		}
+		if err = p.writeField4(oprot); err != nil {
+			fieldId = 4
 			goto WriteFieldError
 		}
 	}
@@ -229,6 +258,23 @@ WriteFieldBeginError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 3 begin error: ", p), err)
 WriteFieldEndError:
 	return thrift.PrependError(fmt.Sprintf("%T write field 3 end error: ", p), err)
+}
+
+func (p *Entry) writeField4(oprot thrift.TProtocol) (err error) {
+	if err = oprot.WriteFieldBegin("version", thrift.I64, 4); err != nil {
+		goto WriteFieldBeginError
+	}
+	if err := oprot.WriteI64(p.Version); err != nil {
+		return err
+	}
+	if err = oprot.WriteFieldEnd(); err != nil {
+		goto WriteFieldEndError
+	}
+	return nil
+WriteFieldBeginError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 begin error: ", p), err)
+WriteFieldEndError:
+	return thrift.PrependError(fmt.Sprintf("%T write field 4 end error: ", p), err)
 }
 
 func (p *Entry) String() string {
