@@ -27,9 +27,9 @@ import (
 	"github.com/B1NARY-GR0UP/originium/pkg/filter"
 	"github.com/B1NARY-GR0UP/originium/pkg/kway"
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
-	"github.com/B1NARY-GR0UP/originium/pkg/utils"
 	"github.com/B1NARY-GR0UP/originium/table"
+	"github.com/B1NARY-GR0UP/originium/types"
+	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
 type levelManager struct {
@@ -354,14 +354,14 @@ func (lm *levelManager) compactL0() {
 	// old -> new (append L1 first)
 	var dataBlockList [][]types.Entry
 	// L1 data block entries
-	for _, table := range l1Tables {
-		th := table.Value.(tableHandle)
+	for _, tab := range l1Tables {
+		th := tab.Value.(tableHandle)
 		dataBlock := lm.fetch(1, th.levelIdx, th.dataBlockIndex.DataBlock)
 		dataBlockList = append(dataBlockList, dataBlock.Entries)
 	}
 	// L0 data block entries
-	for _, table := range l0Tables {
-		th := table.Value.(tableHandle)
+	for _, tab := range l0Tables {
+		th := tab.Value.(tableHandle)
 		dataBlock := lm.fetch(0, th.levelIdx, th.dataBlockIndex.DataBlock)
 		dataBlockList = append(dataBlockList, dataBlock.Entries)
 	}
@@ -442,8 +442,8 @@ func (lm *levelManager) compactLN(n int) {
 	// old -> new (append LN+1 first)
 	var dataBlockList [][]types.Entry
 	// LN+1 data block entries
-	for _, table := range ln1Tables {
-		th := table.Value.(tableHandle)
+	for _, tab := range ln1Tables {
+		th := tab.Value.(tableHandle)
 		dataBlockLN1 := lm.fetch(n+1, th.levelIdx, th.dataBlockIndex.DataBlock)
 		dataBlockList = append(dataBlockList, dataBlockLN1.Entries)
 	}

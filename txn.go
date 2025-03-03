@@ -1,4 +1,4 @@
-// Copyright 2024 BINARY Members
+// Copyright 2025 BINARY Members
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,28 +14,28 @@
 
 package originium
 
-import (
-	"testing"
+type Txn struct {
+	db *DB
+}
 
-	"github.com/B1NARY-GR0UP/originium/types"
-	"github.com/stretchr/testify/assert"
-)
+type TxnFunc func(*Txn) error
 
-func TestMemtableSetAndGet(t *testing.T) {
-	dir := t.TempDir()
-	mt := newMemtable(dir, 4, 0.5)
+func (t *Txn) Commit() error {
+	return nil
+}
 
-	entry := types.Entry{Key: "key1", Value: []byte("value1"), Tombstone: false}
+func (t *Txn) Rollback() error {
+	return nil
+}
 
-	mt.set(entry)
-	gotValue, ok := mt.get(entry.Key)
-	assert.True(t, ok)
-	assert.Equal(t, entry, gotValue)
+func (t *Txn) Set(key string, value []byte) error {
+	return nil
+}
 
-	got, ok := mt.get("hello")
-	assert.Equal(t, types.Entry{}, got)
-	assert.False(t, ok)
+func (t *Txn) Get(key string) error {
+	return nil
+}
 
-	err := mt.wal.Delete()
-	assert.NoError(t, err)
+func (t *Txn) Delete(key string) error {
+	return nil
 }

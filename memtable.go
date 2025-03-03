@@ -23,8 +23,8 @@ import (
 
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
 	"github.com/B1NARY-GR0UP/originium/pkg/skiplist"
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
-	"github.com/B1NARY-GR0UP/originium/pkg/utils"
+	"github.com/B1NARY-GR0UP/originium/types"
+	"github.com/B1NARY-GR0UP/originium/utils"
 	"github.com/B1NARY-GR0UP/originium/wal"
 )
 

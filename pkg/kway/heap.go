@@ -14,7 +14,9 @@
 
 package kway
 
-import "github.com/B1NARY-GR0UP/originium/pkg/types"
+import (
+	"github.com/B1NARY-GR0UP/originium/types"
+)
 
 type Element struct {
 	types.Entry

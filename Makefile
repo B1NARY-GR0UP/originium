@@ -34,7 +34,7 @@ format:
 	@gofumpt -e -d -w -extra .
 
 types:
-	cd pkg/types
+	cd types
 	thriftgo -g go:frugal_tag -o ./ entry.thrift
 	mv types/entry.go ./ && rm -r types
 

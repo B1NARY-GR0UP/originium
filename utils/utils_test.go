@@ -16,9 +16,9 @@ package utils
 
 import (
 	"encoding/json"
+	"github.com/B1NARY-GR0UP/originium/types"
 	"testing"
 
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

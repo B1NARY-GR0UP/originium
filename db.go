@@ -24,7 +24,7 @@ import (
 
 	"github.com/B1NARY-GR0UP/originium/pkg/kway"
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
+	"github.com/B1NARY-GR0UP/originium/types"
 )
 
 var errMkDir = errors.New("failed to create db dir")
@@ -107,6 +107,18 @@ func (db *DB) Close() {
 	}
 
 	<-db.closed
+}
+
+func (db *DB) Read(fn TxnFunc) error {
+	return nil
+}
+
+func (db *DB) Write(fn TxnFunc) error {
+	return nil
+}
+
+func (db *DB) NewTxn(write bool) *Txn {
+	return nil
 }
 
 func (db *DB) State() State {

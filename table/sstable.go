@@ -18,8 +18,11 @@ import (
 	"time"
 
 	"github.com/B1NARY-GR0UP/originium/pkg/bufferpool"
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
+	"github.com/B1NARY-GR0UP/originium/types"
 )
+
+// TODO: introduce builder
+// TODO: binary.LittleEndian.Put
 
 type SSTable struct {
 	DataBlocks []Data

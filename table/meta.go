@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 
 	"github.com/B1NARY-GR0UP/originium/pkg/bufferpool"
+	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
 // Meta Block
@@ -31,25 +32,32 @@ func (m *Meta) Encode() ([]byte, error) {
 	buf := bufferpool.Pool.Get()
 	defer bufferpool.Pool.Put(buf)
 
-	if err := binary.Write(buf, binary.LittleEndian, m.CreatedUnix); err != nil {
+	w := utils.NewErrorWriter(buf)
+
+	w.Write(binary.LittleEndian, m.CreatedUnix)
+	w.Write(binary.LittleEndian, m.Level)
+
+	if err := w.Error(); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buf, binary.LittleEndian, m.Level); err != nil {
-		return nil, err
-	}
+
 	return buf.Bytes(), nil
 }
 
 func (m *Meta) Decode(data []byte) error {
 	reader := bytes.NewReader(data)
+
+	r := utils.NewErrorReader(reader)
+
 	var createdUnix int64
-	if err := binary.Read(reader, binary.LittleEndian, &createdUnix); err != nil {
-		return err
-	}
 	var level uint64
-	if err := binary.Read(reader, binary.LittleEndian, &level); err != nil {
+	r.Read(binary.LittleEndian, &createdUnix)
+	r.Read(binary.LittleEndian, &level)
+
+	if err := r.Error(); err != nil {
 		return err
 	}
+
 	m.CreatedUnix = createdUnix
 	m.Level = level
 	return nil

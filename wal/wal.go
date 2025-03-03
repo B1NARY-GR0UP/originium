@@ -29,8 +29,8 @@ import (
 
 	"github.com/B1NARY-GR0UP/originium/pkg/bufferpool"
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
-	"github.com/B1NARY-GR0UP/originium/pkg/utils"
+	"github.com/B1NARY-GR0UP/originium/types"
+	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
 var errNilFD = errors.New("fd must not be nil")

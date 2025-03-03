@@ -20,6 +20,7 @@ import (
 	"errors"
 
 	"github.com/B1NARY-GR0UP/originium/pkg/bufferpool"
+	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
 const _magic uint64 = 0x5bc2aa5766250562
@@ -38,49 +39,37 @@ func (f *Footer) Encode() ([]byte, error) {
 	buf := bufferpool.Pool.Get()
 	defer bufferpool.Pool.Put(buf)
 
-	if err := binary.Write(buf, binary.LittleEndian, f.MetaBlock.Offset); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buf, binary.LittleEndian, f.MetaBlock.Length); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buf, binary.LittleEndian, f.IndexBlock.Offset); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buf, binary.LittleEndian, f.IndexBlock.Length); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buf, binary.LittleEndian, f.Magic); err != nil {
-		return nil, err
+	w := utils.NewErrorWriter(buf)
+	w.Write(binary.LittleEndian, f.MetaBlock.Offset)
+	w.Write(binary.LittleEndian, f.MetaBlock.Length)
+	w.Write(binary.LittleEndian, f.IndexBlock.Offset)
+	w.Write(binary.LittleEndian, f.IndexBlock.Length)
+	w.Write(binary.LittleEndian, f.Magic)
+
+	if w.Error() != nil {
+		return nil, w.Error()
 	}
 	return buf.Bytes(), nil
 }
 
 func (f *Footer) Decode(footer []byte) error {
 	reader := bytes.NewReader(footer)
-	var metaOffset uint64
-	if err := binary.Read(reader, binary.LittleEndian, &metaOffset); err != nil {
-		return err
-	}
-	var metaLength uint64
-	if err := binary.Read(reader, binary.LittleEndian, &metaLength); err != nil {
-		return err
-	}
-	var indexOffset uint64
-	if err := binary.Read(reader, binary.LittleEndian, &indexOffset); err != nil {
-		return err
-	}
-	var indexLength uint64
-	if err := binary.Read(reader, binary.LittleEndian, &indexLength); err != nil {
-		return err
-	}
-	var magic uint64
-	if err := binary.Read(reader, binary.LittleEndian, &magic); err != nil {
-		return err
+	r := utils.NewErrorReader(reader)
+
+	var metaOffset, metaLength, indexOffset, indexLength, magic uint64
+	r.Read(binary.LittleEndian, &metaOffset)
+	r.Read(binary.LittleEndian, &metaLength)
+	r.Read(binary.LittleEndian, &indexOffset)
+	r.Read(binary.LittleEndian, &indexLength)
+	r.Read(binary.LittleEndian, &magic)
+
+	if r.Error() != nil {
+		return r.Error()
 	}
 	if magic != _magic {
 		return ErrInvalidMagic
 	}
+
 	f.Magic = magic
 	f.MetaBlock.Offset = metaOffset
 	f.MetaBlock.Length = metaLength

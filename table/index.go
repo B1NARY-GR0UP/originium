@@ -19,8 +19,8 @@ import (
 	"encoding/binary"
 
 	"github.com/B1NARY-GR0UP/originium/pkg/bufferpool"
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
-	"github.com/B1NARY-GR0UP/originium/pkg/utils"
+	"github.com/B1NARY-GR0UP/originium/types"
+	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
 // Index Block
@@ -81,32 +81,21 @@ func (i *Index) Encode() ([]byte, error) {
 	buf := bufferpool.Pool.Get()
 	defer bufferpool.Pool.Put(buf)
 
-	if err := binary.Write(buf, binary.LittleEndian, i.DataBlock.Offset); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buf, binary.LittleEndian, i.DataBlock.Length); err != nil {
-		return nil, err
-	}
+	w := utils.NewErrorWriter(buf)
+	w.Write(binary.LittleEndian, i.DataBlock.Offset)
+	w.Write(binary.LittleEndian, i.DataBlock.Length)
 
 	for _, entry := range i.Entries {
-		if err := binary.Write(buf, binary.LittleEndian, uint16(len(entry.StartKey))); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(buf, binary.LittleEndian, []byte(entry.StartKey)); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(buf, binary.LittleEndian, uint16(len(entry.EndKey))); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(buf, binary.LittleEndian, []byte(entry.EndKey)); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(buf, binary.LittleEndian, entry.DataHandle.Offset); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(buf, binary.LittleEndian, entry.DataHandle.Length); err != nil {
-			return nil, err
-		}
+		w.Write(binary.LittleEndian, uint16(len(entry.StartKey)))
+		w.Write(binary.LittleEndian, []byte(entry.StartKey))
+		w.Write(binary.LittleEndian, uint16(len(entry.EndKey)))
+		w.Write(binary.LittleEndian, []byte(entry.EndKey))
+		w.Write(binary.LittleEndian, entry.DataHandle.Offset)
+		w.Write(binary.LittleEndian, entry.DataHandle.Length)
+	}
+
+	if w.Error() != nil {
+		return nil, w.Error()
 	}
 
 	compressed := bufferpool.Pool.Get()
@@ -127,39 +116,31 @@ func (i *Index) Decode(index []byte) error {
 	}
 
 	reader := bytes.NewReader(buf.Bytes())
+	r := utils.NewErrorReader(reader)
 
-	if err := binary.Read(reader, binary.LittleEndian, &i.DataBlock.Offset); err != nil {
-		return err
-	}
-	if err := binary.Read(reader, binary.LittleEndian, &i.DataBlock.Length); err != nil {
-		return err
-	}
+	r.Read(binary.LittleEndian, &i.DataBlock.Offset)
+	r.Read(binary.LittleEndian, &i.DataBlock.Length)
 
 	for reader.Len() > 0 {
 		var startKeyLen uint16
-		if err := binary.Read(reader, binary.LittleEndian, &startKeyLen); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &startKeyLen)
 		startKey := make([]byte, startKeyLen)
-		if err := binary.Read(reader, binary.LittleEndian, &startKey); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &startKey)
+
 		var endKeyLen uint16
-		if err := binary.Read(reader, binary.LittleEndian, &endKeyLen); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &endKeyLen)
 		endKey := make([]byte, endKeyLen)
-		if err := binary.Read(reader, binary.LittleEndian, &endKey); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &endKey)
+
 		var offset uint64
-		if err := binary.Read(reader, binary.LittleEndian, &offset); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &offset)
 		var length uint64
-		if err := binary.Read(reader, binary.LittleEndian, &length); err != nil {
-			return err
+		r.Read(binary.LittleEndian, &length)
+
+		if r.Error() != nil {
+			return r.Error()
 		}
+
 		i.Entries = append(i.Entries, IndexEntry{
 			StartKey: string(startKey),
 			EndKey:   string(endKey),

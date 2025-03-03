@@ -19,7 +19,7 @@ import (
 	"container/heap"
 	"slices"
 
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
+	"github.com/B1NARY-GR0UP/originium/types"
 )
 
 func Merge(lists ...[]types.Entry) []types.Entry {

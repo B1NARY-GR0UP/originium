@@ -19,7 +19,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
+	"github.com/B1NARY-GR0UP/originium/types"
 )
 
 const _head = "HEAD"

@@ -19,8 +19,8 @@ import (
 	"encoding/binary"
 
 	"github.com/B1NARY-GR0UP/originium/pkg/bufferpool"
-	"github.com/B1NARY-GR0UP/originium/pkg/types"
-	"github.com/B1NARY-GR0UP/originium/pkg/utils"
+	"github.com/B1NARY-GR0UP/originium/types"
+	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
 // Data Block
@@ -75,41 +75,36 @@ func (d *Data) Encode() ([]byte, error) {
 	buf := bufferpool.Pool.Get()
 	defer bufferpool.Pool.Put(buf)
 
+	w := utils.NewErrorWriter(buf)
 	var prevKey string
 	for _, entry := range d.Entries {
 		lcp := utils.LCP(entry.Key, prevKey)
 		suffix := entry.Key[lcp:]
 
 		// lcp
-		if err := binary.Write(buf, binary.LittleEndian, uint16(lcp)); err != nil {
-			return nil, err
-		}
+		w.Write(binary.LittleEndian, uint16(lcp))
 
 		// suffix length
-		if err := binary.Write(buf, binary.LittleEndian, uint16(len(suffix))); err != nil {
-			return nil, err
-		}
+		w.Write(binary.LittleEndian, uint16(len(suffix)))
+
 		// suffix
-		if err := binary.Write(buf, binary.LittleEndian, []byte(suffix)); err != nil {
-			return nil, err
-		}
+		w.Write(binary.LittleEndian, []byte(suffix))
 
 		// value length
-		if err := binary.Write(buf, binary.LittleEndian, uint16(len(entry.Value))); err != nil {
-			return nil, err
-		}
+		w.Write(binary.LittleEndian, uint16(len(entry.Value)))
+
 		// value
-		if err := binary.Write(buf, binary.LittleEndian, entry.Value); err != nil {
-			return nil, err
-		}
+		w.Write(binary.LittleEndian, entry.Value)
 
 		// tombstone
 		tombstone := uint8(0)
 		if entry.Tombstone {
 			tombstone = 1
 		}
-		if err := binary.Write(buf, binary.LittleEndian, tombstone); err != nil {
-			return nil, err
+		w.Write(binary.LittleEndian, tombstone)
+
+		if w.Error() != nil {
+			return nil, w.Error()
 		}
 
 		prevKey = entry.Key
@@ -133,39 +128,36 @@ func (d *Data) Decode(data []byte) error {
 	}
 
 	reader := bytes.NewReader(buf.Bytes())
+	r := utils.NewErrorReader(reader)
+
 	var prevKey string
 	for reader.Len() > 0 {
 		// lcp
 		var lcp uint16
-		if err := binary.Read(reader, binary.LittleEndian, &lcp); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &lcp)
 
 		// suffix length
 		var suffixLen uint16
-		if err := binary.Read(reader, binary.LittleEndian, &suffixLen); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &suffixLen)
+
 		// suffix
 		suffix := make([]byte, suffixLen)
-		if err := binary.Read(reader, binary.LittleEndian, &suffix); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &suffix)
 
 		// value length
 		var valueLen uint16
-		if err := binary.Read(reader, binary.LittleEndian, &valueLen); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &valueLen)
+
 		// value
 		value := make([]byte, valueLen)
-		if err := binary.Read(reader, binary.LittleEndian, &value); err != nil {
-			return err
-		}
+		r.Read(binary.LittleEndian, &value)
 
+		// tombstone
 		var tombstone uint8
-		if err := binary.Read(reader, binary.LittleEndian, &tombstone); err != nil {
-			return err
+		r.Read(binary.LittleEndian, &tombstone)
+
+		if r.Error() != nil {
+			return r.Error()
 		}
 
 		key := prevKey[:lcp] + string(suffix)

@@ -1,6 +1,6 @@
 module github.com/B1NARY-GR0UP/originium
 
-go 1.23.1
+go 1.24
 
 require (
 	github.com/apache/thrift v0.19.0
