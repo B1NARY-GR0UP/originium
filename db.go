@@ -27,7 +27,10 @@ import (
 	"github.com/B1NARY-GR0UP/originium/types"
 )
 
-var errMkDir = errors.New("failed to create db dir")
+var (
+	ErrMkDir     = errors.New("failed to create db dir")
+	ErrNotOpened = errors.New("db not opened")
+)
 
 type DB struct {
 	mu sync.RWMutex
@@ -42,6 +45,7 @@ type DB struct {
 	flushC     chan *memtable
 
 	manager *levelManager
+	oracle  *oracle
 
 	closed chan struct{}
 	closeC chan struct{}
@@ -62,7 +66,7 @@ func Open(dir string, config Config) (*DB, error) {
 	}
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, errMkDir
+		return nil, ErrMkDir
 	}
 
 	db := &DB{
@@ -70,6 +74,7 @@ func Open(dir string, config Config) (*DB, error) {
 		dir:        dir,
 		logger:     logger.GetLogger(),
 		immutables: list.New(),
+		oracle:     newOracle(),
 		flushC:     make(chan *memtable, config.ImmutableBuffer),
 		closeC:     make(chan struct{}),
 		closed:     make(chan struct{}),
@@ -110,15 +115,41 @@ func (db *DB) Close() {
 }
 
 func (db *DB) Read(fn TxnFunc) error {
-	return nil
+	if db.State() != StateOpened {
+		return ErrNotOpened
+	}
+	txn := db.NewTxn(false)
+	defer txn.Discard()
+
+	return fn(txn)
 }
 
 func (db *DB) Write(fn TxnFunc) error {
-	return nil
+	if db.State() != StateOpened {
+		return ErrNotOpened
+	}
+	txn := db.NewTxn(true)
+	defer txn.Discard()
+
+	if err := fn(txn); err != nil {
+		return err
+	}
+
+	return txn.Commit()
 }
 
 func (db *DB) NewTxn(write bool) *Txn {
-	return nil
+	txn := &Txn{
+		readTs:   db.oracle.readTs(),
+		readOnly: !write,
+		db:       db,
+	}
+
+	if write {
+		txn.pendingWrites = make(map[types.Key]types.Entry)
+		txn.writesFp = make(map[uint64]struct{})
+	}
+	return txn
 }
 
 func (db *DB) State() State {

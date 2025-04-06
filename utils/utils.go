@@ -24,6 +24,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/cloudwego/frugal"
 	"github.com/klauspost/compress/s2"
+	"github.com/spaolacci/murmur3"
 )
 
 func Elapsed(now time.Time, logger logger.Logger, msg string) {
@@ -82,4 +83,10 @@ func Decompress(src io.Reader, dst io.Writer) error {
 func Magic(input string) uint64 {
 	hash := sha1.Sum([]byte(input))
 	return binary.BigEndian.Uint64(hash[:8])
+}
+
+func Hash(s string) uint64 {
+	hash := murmur3.New64()
+	_, _ = hash.Write([]byte(s))
+	return hash.Sum64()
 }
