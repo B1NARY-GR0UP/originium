@@ -88,7 +88,7 @@ func (o *oracle) newCommitTs(txn *Txn) (uint64, bool) {
 		return 0, false
 	}
 
-	o.doneRead(txn.readTs)
+	o.doneRead(txn)
 	o.cleanUpCommittedTxns()
 
 	ts := o.nextTs
@@ -103,18 +103,16 @@ func (o *oracle) newCommitTs(txn *Txn) (uint64, bool) {
 	return ts, false
 }
 
-func (o *oracle) doneRead(ts uint64) {
-	o.readMark.Done(ts)
+func (o *oracle) doneRead(txn *Txn) {
+	if txn.doneRead {
+		return
+	}
+	o.readMark.Done(txn.readTs)
+	txn.doneRead = true
 }
 
 func (o *oracle) doneCommit(ts uint64) {
 	o.commitMark.Done(ts)
-}
-
-func (o *oracle) incrementNextTs() {
-	o.Lock()
-	defer o.Unlock()
-	o.nextTs++
 }
 
 // cleanUpCommittedTxns

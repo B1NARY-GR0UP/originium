@@ -6,3 +6,4 @@
 - [ ] error handling
 - [ ] restrict sstable size (maybe need a goroutine to check size, then divide or merge)
 - [ ] target size (all non-0 levels have target sizes. Compaction's goal will be to restrict data size of those levels to be under the target. The size targets are usually exponentially increasing) [ref](https://github.com/facebook/rocksdb/wiki/Leveled-Compaction)
+- [ ] txn crush recovery

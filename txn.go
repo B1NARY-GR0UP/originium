@@ -16,6 +16,7 @@ package originium
 
 import (
 	"errors"
+
 	"github.com/B1NARY-GR0UP/originium/types"
 	"github.com/B1NARY-GR0UP/originium/utils"
 )
@@ -25,12 +26,14 @@ import (
 var (
 	ErrReadOnlyTxn  = errors.New("transaction is read-only")
 	ErrDiscardedTxn = errors.New("transaction has been discarded")
+	ErrConflictTxn  = errors.New("transaction has a conflict")
 	ErrEmptyKey     = errors.New("key is empty")
 )
 
 type Txn struct {
 	readOnly  bool
 	discarded bool
+	doneRead  bool
 
 	db *DB
 
@@ -57,8 +60,27 @@ func (t *Txn) Commit() error {
 	}
 
 	orc := t.db.oracle
+
 	orc.writeLock.Lock()
-	// TODO
+	defer orc.writeLock.Unlock()
+
+	commitTs, hasConflict := orc.newCommitTs(t)
+	if hasConflict {
+		return ErrConflictTxn
+	}
+
+	// TODO: support txn crush recovery (txnEnt and txnFin)
+
+	for _, v := range t.pendingWrites {
+		t.db.rawset(types.Entry{
+			Key:       v.Key,
+			Value:     v.Value,
+			Tombstone: v.Tombstone,
+			Version:   int64(commitTs),
+		})
+	}
+
+	orc.commitMark.Done(commitTs)
 
 	return nil
 }
@@ -67,11 +89,12 @@ func (t *Txn) Discard() {
 	if t.discarded {
 		return
 	}
+	t.db.oracle.doneRead(t)
 	t.discarded = true
-	// TODO: doneRead
 }
 
 func (t *Txn) Get(key string) error {
+	// TODO
 	return nil
 }
 

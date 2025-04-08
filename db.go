@@ -93,6 +93,12 @@ func Open(dir string, config Config) (*DB, error) {
 	db.memtable = mt
 	db.manager = lm
 
+	// recover oracle
+	maxTs := uint64(db.MaxVersion())
+	db.oracle.readMark.Done(maxTs)
+	db.oracle.commitMark.Done(maxTs)
+	db.oracle.nextTs = maxTs + 1
+
 	go db.run()
 	return db, nil
 }
@@ -227,6 +233,11 @@ func (db *DB) Scan(start, end string) []types.KV {
 	slices.Reverse(scan)
 	// merge result
 	return kvs(kway.Merge(scan...))
+}
+
+func (db *DB) MaxVersion() int64 {
+	// TODO
+	return 0
 }
 
 func (db *DB) rawset(entry types.Entry) {

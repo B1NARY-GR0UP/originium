@@ -103,6 +103,7 @@ func (w *WaterMark) process() {
 	for {
 		select {
 		case <-w.stopC:
+			close(w.markC)
 			return
 		case m := <-w.markC:
 			if m.waiter != nil {
