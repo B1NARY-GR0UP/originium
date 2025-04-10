@@ -140,3 +140,104 @@ func TestReset(t *testing.T) {
 	assert.Equal(t, 1, sl.level)
 	assert.Nil(t, sl.head.next[0])
 }
+
+func TestMultiVersionEntries(t *testing.T) {
+	sl := New(4, 0.5)
+
+	key := "testKey"
+	entries := []types.Entry{
+		{Key: types.KeyWithTs(key, 1), Value: []byte("value1"), Tombstone: false, Version: 1},
+		{Key: types.KeyWithTs(key, 2), Value: []byte("value2"), Tombstone: false, Version: 2},
+		{Key: types.KeyWithTs(key, 3), Value: []byte("value3"), Tombstone: false, Version: 3},
+	}
+
+	sl.Set(entries[2])
+	sl.Set(entries[0])
+	sl.Set(entries[1])
+
+	for _, entry := range entries {
+		result, found := sl.Get(entry.Key)
+		assert.True(t, found)
+		assert.Equal(t, entry, result)
+	}
+
+	allEntries := sl.All()
+	assert.Equal(t, 3, len(allEntries))
+
+	assert.Equal(t, entries[2].Key, allEntries[0].Key)
+	assert.Equal(t, entries[1].Key, allEntries[1].Key)
+	assert.Equal(t, entries[0].Key, allEntries[2].Key)
+}
+
+func TestGreaterOrEqual(t *testing.T) {
+	sl := New(4, 0.5)
+
+	entries := []types.Entry{
+		{Key: types.KeyWithTs("a", 1), Value: []byte("a1"), Version: 1},
+		{Key: types.KeyWithTs("a", 2), Value: []byte("a2"), Version: 2},
+		{Key: types.KeyWithTs("b", 1), Value: []byte("b1"), Version: 1},
+		{Key: types.KeyWithTs("c", 3), Value: []byte("c3"), Version: 3},
+		{Key: types.KeyWithTs("c", 1), Value: []byte("c1"), Version: 1},
+	}
+
+	for _, entry := range entries {
+		sl.Set(entry)
+	}
+
+	tests := []struct {
+		searchKey string
+		expectKey string
+		found     bool
+	}{
+		{types.KeyWithTs("a", 2), types.KeyWithTs("a", 2), true},
+		{types.KeyWithTs("a", 3), types.KeyWithTs("a", 2), true},
+		{types.KeyWithTs("a", 0), types.KeyWithTs("b", 1), true},
+		{"aa", types.KeyWithTs("b", 1), true},
+		{types.KeyWithTs("d", 1), "", false},
+	}
+
+	for _, tt := range tests {
+		result, found := sl.GreaterOrEqual(tt.searchKey)
+		assert.Equal(t, tt.found, found, "search key %s", tt.searchKey)
+		if found {
+			assert.Equal(t, tt.expectKey, result.Key, "search key %s should return %s, but got %s",
+				tt.searchKey, tt.expectKey, result.Key)
+		}
+	}
+
+	// Verify returning the latest version when searching by base key name
+	entry, found := sl.GreaterOrEqual("a")
+	assert.True(t, found)
+	assert.Equal(t, types.KeyWithTs("a", 2), entry.Key) // Should return the latest version of a: a@2
+
+	entry, found = sl.GreaterOrEqual("c")
+	assert.True(t, found)
+	assert.Equal(t, types.KeyWithTs("c", 3), entry.Key) // Should return the latest version of c: c@3
+}
+
+func TestScanWithVersions(t *testing.T) {
+	sl := New(4, 0.5)
+
+	// Create multiple versions for multiple keys
+	entries := []types.Entry{
+		{Key: types.KeyWithTs("a", 3), Value: []byte("a3"), Version: 3},
+		{Key: types.KeyWithTs("a", 1), Value: []byte("a1"), Version: 1},
+		{Key: types.KeyWithTs("b", 2), Value: []byte("b2"), Version: 2},
+		{Key: types.KeyWithTs("b", 1), Value: []byte("b1"), Version: 1},
+		{Key: types.KeyWithTs("c", 1), Value: []byte("c1"), Version: 1},
+	}
+
+	for _, entry := range entries {
+		sl.Set(entry)
+	}
+
+	// Test range query
+	results := sl.Scan("a", "c")
+	assert.Equal(t, 4, len(results))
+
+	// Due to CompareKeys sorting, results should be sorted by key name ascending, and by timestamp descending for the same key
+	assert.Equal(t, types.KeyWithTs("a", 3), results[0].Key)
+	assert.Equal(t, types.KeyWithTs("a", 1), results[1].Key)
+	assert.Equal(t, types.KeyWithTs("b", 2), results[2].Key)
+	assert.Equal(t, types.KeyWithTs("b", 1), results[3].Key)
+}

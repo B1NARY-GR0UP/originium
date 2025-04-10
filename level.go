@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -177,7 +178,12 @@ func (lm *levelManager) search(key types.Key) (types.Entry, bool) {
 			th := e.Value.(tableHandle)
 
 			// search bloom filter
-			if !th.filter.Contains(key) {
+			// TODO: remove this
+			k := key
+			if strings.LastIndex(k, "@") != -1 {
+				k = types.ParseKey(k)
+			}
+			if !th.filter.Contains(k) {
 				// not in this sstable, search next one
 				continue
 			}
@@ -274,6 +280,12 @@ func (lm *levelManager) flushToL0(kvs []types.Entry) error {
 		return err
 	}
 
+	// os sync
+	if err = fd.Sync(); err != nil {
+		lm.logger.Errorf("failed to sync file: %v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -332,6 +344,7 @@ func (lm *levelManager) fetchAndScan(start, end types.Key, level, idx int, handl
 	return dataBlock.Scan(start, end)
 }
 
+// TODO: remove version <= discardAtOrBelow and keep a latest version
 // L0 -> L1
 func (lm *levelManager) compactL0() {
 	defer utils.Elapsed(time.Now(), lm.logger, "compact level 0")

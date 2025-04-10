@@ -32,9 +32,9 @@ func (d *Data) Search(key types.Key) (types.Entry, bool) {
 	low, high := 0, len(d.Entries)-1
 	for low <= high {
 		mid := low + ((high - low) >> 1)
-		if d.Entries[mid].Key < key {
+		if types.CompareKeys(d.Entries[mid].Key, key) < 0 {
 			low = mid + 1
-		} else if d.Entries[mid].Key > key {
+		} else if types.CompareKeys(d.Entries[mid].Key, key) > 0 {
 			high = mid - 1
 		} else {
 			return d.Entries[mid], true
@@ -52,8 +52,8 @@ func (d *Data) Scan(start, end types.Key) []types.Entry {
 	var mid int
 	for low <= high {
 		mid = low + ((high - low) >> 1)
-		if d.Entries[mid].Key >= start {
-			if mid == 0 || d.Entries[mid-1].Key < start {
+		if types.CompareKeys(d.Entries[mid].Key, start) >= 0 {
+			if mid == 0 || types.CompareKeys(d.Entries[mid-1].Key, start) < 0 {
 				// used as return
 				found = true
 				break
@@ -64,7 +64,7 @@ func (d *Data) Scan(start, end types.Key) []types.Entry {
 		}
 	}
 
-	for i := mid; i < len(d.Entries) && d.Entries[i].Key < end && found; i++ {
+	for i := mid; i < len(d.Entries) && types.CompareKeys(d.Entries[i].Key, end) < 0 && found; i++ {
 		res = append(res, d.Entries[i])
 	}
 
@@ -102,6 +102,10 @@ func (d *Data) Encode() ([]byte, error) {
 			tombstone = 1
 		}
 		w.Write(binary.LittleEndian, tombstone)
+
+		// version
+		version := uint64(entry.Version)
+		w.Write(binary.LittleEndian, version)
 
 		if w.Error() != nil {
 			return nil, w.Error()
@@ -156,6 +160,9 @@ func (d *Data) Decode(data []byte) error {
 		var tombstone uint8
 		r.Read(binary.LittleEndian, &tombstone)
 
+		var version uint64
+		r.Read(binary.LittleEndian, &version)
+
 		if r.Error() != nil {
 			return r.Error()
 		}
@@ -165,6 +172,7 @@ func (d *Data) Decode(data []byte) error {
 			Key:       key,
 			Value:     value,
 			Tombstone: tombstone == 1,
+			Version:   int64(version),
 		})
 
 		prevKey = key

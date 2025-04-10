@@ -60,6 +60,7 @@ func New(maxLevel int, p float64) *SkipList {
 				Key:       _head,
 				Value:     nil,
 				Tombstone: false,
+				Version:   0,
 			},
 			next: make([]*Element, maxLevel),
 		},
@@ -79,14 +80,14 @@ func (s *SkipList) Set(entry types.Entry) {
 	update := make([]*Element, s.maxLevel)
 
 	for i := s.maxLevel - 1; i >= 0; i-- {
-		for curr.next[i] != nil && curr.next[i].Key < entry.Key {
+		for curr.next[i] != nil && types.CompareKeys(curr.next[i].Key, entry.Key) < 0 {
 			curr = curr.next[i]
 		}
 		update[i] = curr
 	}
 
 	// update entry
-	if curr.next[0] != nil && curr.next[0].Key == entry.Key {
+	if curr.next[0] != nil && types.CompareKeys(curr.next[0].Key, entry.Key) == 0 {
 		s.size += len(entry.Value) - len(curr.next[0].Value)
 
 		// update value and tombstone
@@ -110,6 +111,7 @@ func (s *SkipList) Set(entry types.Entry) {
 			Key:       entry.Key,
 			Value:     entry.Value,
 			Tombstone: entry.Tombstone,
+			Version:   entry.Version,
 		},
 		next: make([]*Element, level),
 	}
@@ -118,27 +120,55 @@ func (s *SkipList) Set(entry types.Entry) {
 		e.next[i] = update[i].next[i]
 		update[i].next[i] = e
 	}
-	s.size += len(entry.Key) + len(entry.Value) + int(unsafe.Sizeof(entry.Tombstone)) + len(e.next)*int(unsafe.Sizeof((*Element)(nil)))
+	s.size += len(entry.Key) + len(entry.Value) +
+		int(unsafe.Sizeof(entry.Tombstone)) +
+		int(unsafe.Sizeof(entry.Version)) +
+		len(e.next)*int(unsafe.Sizeof((*Element)(nil)))
 }
 
 func (s *SkipList) Get(key types.Key) (types.Entry, bool) {
 	curr := s.head
 
 	for i := s.maxLevel - 1; i >= 0; i-- {
-		for curr.next[i] != nil && curr.next[i].Key < key {
+		for curr.next[i] != nil && types.CompareKeys(curr.next[i].Key, key) < 0 {
 			curr = curr.next[i]
 		}
 	}
 
 	curr = curr.next[0]
 
-	if curr != nil && curr.Key == key {
+	if curr != nil && types.CompareKeys(curr.Key, key) == 0 {
 		return types.Entry{
 			Key:       curr.Key,
 			Value:     curr.Value,
 			Tombstone: curr.Tombstone,
+			Version:   curr.Version,
 		}, true
 	}
+
+	return types.Entry{}, false
+}
+
+func (s *SkipList) GreaterOrEqual(key types.Key) (types.Entry, bool) {
+	curr := s.head
+
+	for i := s.maxLevel - 1; i >= 0; i-- {
+		for curr.next[i] != nil && types.CompareKeys(curr.next[i].Key, key) < 0 {
+			curr = curr.next[i]
+		}
+	}
+
+	curr = curr.next[0]
+
+	if curr != nil {
+		return types.Entry{
+			Key:       curr.Key,
+			Value:     curr.Value,
+			Tombstone: curr.Tombstone,
+			Version:   curr.Version,
+		}, true
+	}
+
 	return types.Entry{}, false
 }
 
@@ -148,18 +178,19 @@ func (s *SkipList) Scan(start, end types.Key) []types.Entry {
 	curr := s.head
 
 	for i := s.maxLevel - 1; i >= 0; i-- {
-		for curr.next[i] != nil && curr.next[i].Key < start {
+		for curr.next[i] != nil && types.CompareKeys(curr.next[i].Key, start) < 0 {
 			curr = curr.next[i]
 		}
 	}
 
 	curr = curr.next[0]
 
-	for curr != nil && curr.Key < end {
+	for curr != nil && types.CompareKeys(curr.Key, end) < 0 {
 		res = append(res, types.Entry{
 			Key:       curr.Key,
 			Value:     curr.Value,
 			Tombstone: curr.Tombstone,
+			Version:   curr.Version,
 		})
 		curr = curr.next[0]
 	}
@@ -175,6 +206,7 @@ func (s *SkipList) All() []types.Entry {
 			Key:       curr.Key,
 			Value:     curr.Value,
 			Tombstone: curr.Tombstone,
+			Version:   curr.Version,
 		})
 	}
 
@@ -187,7 +219,7 @@ func (s *SkipList) Delete(key types.Key) bool {
 	update := make([]*Element, s.maxLevel)
 
 	for i := s.maxLevel - 1; i >= 0; i-- {
-		for curr.next[i] != nil && curr.next[i].Key < key {
+		for curr.next[i] != nil && types.CompareKeys(curr.next[i].Key, key) < 0 {
 			curr = curr.next[i]
 		}
 		update[i] = curr
@@ -195,14 +227,17 @@ func (s *SkipList) Delete(key types.Key) bool {
 
 	curr = curr.next[0]
 
-	if curr != nil && curr.Key == key {
+	if curr != nil && types.CompareKeys(curr.Key, key) == 0 {
 		for i := range s.level {
 			if update[i].next[i] != curr {
 				break
 			}
 			update[i].next[i] = curr.next[i]
 		}
-		s.size -= len(curr.Key) + len(curr.Value) + int(unsafe.Sizeof(curr.Tombstone)) + len(curr.next)*int(unsafe.Sizeof((*Element)(nil)))
+		s.size -= len(curr.Key) + len(curr.Value) +
+			int(unsafe.Sizeof(curr.Tombstone)) +
+			int(unsafe.Sizeof(curr.Version)) +
+			len(curr.next)*int(unsafe.Sizeof((*Element)(nil)))
 
 		for s.level > 1 && s.head.next[s.level-1] == nil {
 			s.level--

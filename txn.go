@@ -21,13 +21,14 @@ import (
 	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
-// TODO: OCC + MVCC
+// TODO: notes about OCC mechanism
 
 var (
 	ErrReadOnlyTxn  = errors.New("transaction is read-only")
 	ErrDiscardedTxn = errors.New("transaction has been discarded")
 	ErrConflictTxn  = errors.New("transaction has a conflict")
 	ErrEmptyKey     = errors.New("key is empty")
+	ErrKeyNotFound  = errors.New("key not found")
 )
 
 type Txn struct {
@@ -73,7 +74,7 @@ func (t *Txn) Commit() error {
 
 	for _, v := range t.pendingWrites {
 		t.db.rawset(types.Entry{
-			Key:       v.Key,
+			Key:       types.KeyWithTs(v.Key, commitTs),
 			Value:     v.Value,
 			Tombstone: v.Tombstone,
 			Version:   int64(commitTs),
@@ -93,9 +94,34 @@ func (t *Txn) Discard() {
 	t.discarded = true
 }
 
-func (t *Txn) Get(key string) error {
-	// TODO
-	return nil
+func (t *Txn) Get(key string) ([]byte, error) {
+	// validation
+	switch {
+	case t.discarded:
+		return nil, ErrDiscardedTxn
+	case key == "":
+		return nil, ErrEmptyKey
+	}
+
+	// write txn
+	if !t.readOnly {
+		if v, ok := t.pendingWrites[key]; ok {
+			if v.Tombstone {
+				return nil, ErrKeyNotFound
+			}
+			return v.Value, nil
+		}
+		// Q: Why is not need to record readFp when read hit the cache?
+		// A: Record readFp is for conflict detection, a conflict will occur when reading a key modified by a committed txn.
+		// Data stored in cache belongs to current txn, other txn will not be able to view these changes.
+		//
+		// record read fingerprint
+		t.readsFp = append(t.readsFp, utils.Hash(key))
+	}
+
+	// TODO: search key with ts
+
+	return nil, nil
 }
 
 func (t *Txn) Set(key string, value []byte) error {

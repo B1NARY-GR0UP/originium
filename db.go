@@ -113,7 +113,7 @@ func (db *DB) Close() {
 		db.flushImmutable(mt)
 	} else {
 		if err := mt.wal.Delete(); err != nil {
-			db.logger.Panicf("failed to delete immutable wal file: %v", err)
+			db.logger.Warnf("failed to delete immutable wal file: %v", err)
 		}
 	}
 
@@ -162,6 +162,7 @@ func (db *DB) State() State {
 	return State(atomic.LoadUint32(&db.state))
 }
 
+// Set TODO: remove
 func (db *DB) Set(key string, value []byte) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -173,6 +174,7 @@ func (db *DB) Set(key string, value []byte) {
 	})
 }
 
+// Delete TODO: remove
 func (db *DB) Delete(key string) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -184,6 +186,7 @@ func (db *DB) Delete(key string) {
 	})
 }
 
+// Get TODO: remove
 func (db *DB) Get(key string) ([]byte, bool) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
@@ -211,7 +214,7 @@ func (db *DB) Get(key string) ([]byte, bool) {
 	return nil, false
 }
 
-// Scan [start, end)
+// Scan [start, end) TODO: remove
 func (db *DB) Scan(start, end string) []types.KV {
 	db.mu.RLock()
 	defer db.mu.RUnlock()

@@ -17,6 +17,7 @@ package filter
 import (
 	"hash"
 	"math"
+	"strings"
 
 	"github.com/B1NARY-GR0UP/originium/types"
 	"github.com/spaolacci/murmur3"
@@ -58,7 +59,12 @@ func New(n int, p float64) *Filter {
 func Build(kvs []types.Entry) *Filter {
 	filter := New(len(kvs), _defaultP)
 	for _, e := range kvs {
-		filter.Add(e.Key)
+		// TODO: remove, all the key use KeyWithTs after upgrade
+		key := e.Key
+		if strings.LastIndex(e.Key, "@") != -1 {
+			key = types.ParseKey(key)
+		}
+		filter.Add(key)
 	}
 	return filter
 }

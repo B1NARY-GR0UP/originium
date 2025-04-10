@@ -41,6 +41,7 @@ type IndexEntry struct {
 }
 
 // Search data block included the key
+// Search for the last element that is less than or equal to the given value
 func (i *Index) Search(key types.Key) (BlockHandle, bool) {
 	n := len(i.Entries)
 	if n == 0 {
@@ -48,17 +49,17 @@ func (i *Index) Search(key types.Key) (BlockHandle, bool) {
 	}
 
 	// check if the key is beyond this sstable
-	if key > i.Entries[n-1].EndKey {
+	if types.CompareKeys(key, i.Entries[n-1].EndKey) > 0 {
 		return BlockHandle{}, false
 	}
 
 	low, high := 0, n-1
 	for low <= high {
 		mid := low + ((high - low) >> 1)
-		if i.Entries[mid].StartKey > key {
+		if types.CompareKeys(i.Entries[mid].StartKey, key) > 0 {
 			high = mid - 1
 		} else {
-			if mid == n-1 || i.Entries[mid+1].StartKey > key {
+			if mid == n-1 || types.CompareKeys(i.Entries[mid+1].StartKey, key) > 0 {
 				return i.Entries[mid].DataHandle, true
 			}
 			low = mid + 1
@@ -70,7 +71,7 @@ func (i *Index) Search(key types.Key) (BlockHandle, bool) {
 func (i *Index) Scan(start, end types.Key) []BlockHandle {
 	var res []BlockHandle
 	for _, entry := range i.Entries {
-		if entry.EndKey >= start && entry.StartKey <= end {
+		if types.CompareKeys(entry.EndKey, start) >= 0 && types.CompareKeys(entry.StartKey, end) <= 0 {
 			res = append(res, entry.DataHandle)
 		}
 	}

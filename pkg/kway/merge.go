@@ -22,6 +22,8 @@ import (
 	"github.com/B1NARY-GR0UP/originium/types"
 )
 
+// TODO: do not merge needed version
+
 func Merge(lists ...[]types.Entry) []types.Entry {
 	h := &Heap{}
 	heap.Init(h)

@@ -14,6 +14,11 @@
 
 package types
 
+import (
+	"strconv"
+	"strings"
+)
+
 type KV struct {
 	K string
 	V []byte
@@ -23,3 +28,44 @@ type (
 	Key   = string
 	Value = []byte
 )
+
+func KeyWithTs(key string, ts uint64) string {
+	return key + "@" + strconv.FormatUint(ts, 10)
+}
+
+func ParseKey(key string) string {
+	return key[:strings.LastIndex(key, "@")]
+}
+
+func ParseTs(key string) uint64 {
+	if key == "" {
+		return 0
+	}
+
+	ts, err := strconv.ParseUint(key[strings.LastIndex(key, "@")+1:], 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return ts
+}
+
+func CompareKeys(key1, key2 string) int {
+	if strings.LastIndex(key1, "@") == -1 || strings.LastIndex(key2, "@") == -1 {
+		return strings.Compare(key1, key2)
+	}
+
+	if cmp := strings.Compare(ParseKey(key1), ParseKey(key2)); cmp != 0 {
+		return cmp
+	}
+
+	ts1 := ParseTs(key1)
+	ts2 := ParseTs(key2)
+
+	if ts1 < ts2 {
+		return 1
+	} else if ts1 > ts2 {
+		return -1
+	}
+	return 0
+}
