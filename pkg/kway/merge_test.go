@@ -42,6 +42,77 @@ func TestMerge(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
+func TestMergeWithTs(t *testing.T) {
+	list1 := []types.Entry{
+		{Key: types.KeyWithTs("a", 1), Value: []byte("1")},
+		{Key: types.KeyWithTs("c", 3), Value: []byte("3")},
+	}
+	list2 := []types.Entry{
+		{Key: types.KeyWithTs("b", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("d", 4), Value: []byte("4")},
+	}
+
+	expected := []types.Entry{
+		{Key: types.KeyWithTs("a", 1), Value: []byte("1")},
+		{Key: types.KeyWithTs("b", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("c", 3), Value: []byte("3")},
+		{Key: types.KeyWithTs("d", 4), Value: []byte("4")},
+	}
+
+	result := Merge(list1, list2)
+	assert.Equal(t, expected, result)
+}
+
+func TestMergeDuplicateWithTs(t *testing.T) {
+	list1 := []types.Entry{
+		{Key: types.KeyWithTs("a", 1), Value: []byte("10")},
+		{Key: types.KeyWithTs("b", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("c", 3), Value: []byte("10")},
+		{Key: types.KeyWithTs("d", 4), Value: []byte("4")},
+	}
+	list2 := []types.Entry{
+		{Key: types.KeyWithTs("a", 1), Value: []byte("1")},
+		{Key: types.KeyWithTs("c", 3), Value: []byte("3")},
+	}
+
+	expected := []types.Entry{
+		{Key: types.KeyWithTs("a", 1), Value: []byte("1")},
+		{Key: types.KeyWithTs("b", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("c", 3), Value: []byte("3")},
+		{Key: types.KeyWithTs("d", 4), Value: []byte("4")},
+	}
+
+	result := Merge(list1, list2)
+	assert.Equal(t, expected, result)
+}
+
+func TestMergeDuplicateWithTs2(t *testing.T) {
+	list1 := []types.Entry{
+		{Key: types.KeyWithTs("a", 1), Value: []byte("1")},
+		{Key: types.KeyWithTs("a", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("a", 3), Value: []byte("3")},
+		{Key: types.KeyWithTs("b", 1), Value: []byte("1")},
+	}
+	list2 := []types.Entry{
+		{Key: types.KeyWithTs("a", 4), Value: []byte("4")},
+		{Key: types.KeyWithTs("b", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("c", 1), Value: []byte("1")},
+	}
+
+	expected := []types.Entry{
+		{Key: types.KeyWithTs("a", 4), Value: []byte("4")},
+		{Key: types.KeyWithTs("a", 3), Value: []byte("3")},
+		{Key: types.KeyWithTs("a", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("a", 1), Value: []byte("1")},
+		{Key: types.KeyWithTs("b", 2), Value: []byte("2")},
+		{Key: types.KeyWithTs("b", 1), Value: []byte("1")},
+		{Key: types.KeyWithTs("c", 1), Value: []byte("1")},
+	}
+
+	result := Merge(list1, list2)
+	assert.Equal(t, expected, result)
+}
+
 func TestMergeDuplicate(t *testing.T) {
 	list1 := []types.Entry{
 		{Key: "a", Value: []byte("10")},

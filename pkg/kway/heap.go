@@ -21,6 +21,7 @@ import (
 type Element struct {
 	types.Entry
 	// list index
+	// NOTE: the larger the index, the newer the value
 	LI int
 }
 
@@ -32,7 +33,11 @@ func (h *Heap) Len() int {
 }
 
 func (h *Heap) Less(i, j int) bool {
-	return (*h)[i].Key < (*h)[j].Key && (*h)[i].LI == (*h)[j].LI || (*h)[i].Key == (*h)[j].Key && (*h)[i].LI < (*h)[j].LI
+	cmp := types.CompareKeys((*h)[i].Key, (*h)[j].Key)
+	if cmp != 0 {
+		return cmp < 0
+	}
+	return (*h)[i].LI < (*h)[j].LI
 }
 
 func (h *Heap) Swap(i, j int) {

@@ -15,14 +15,11 @@
 package kway
 
 import (
-	"cmp"
 	"container/heap"
 	"slices"
 
 	"github.com/B1NARY-GR0UP/originium/types"
 )
-
-// TODO: do not merge needed version
 
 func Merge(lists ...[]types.Entry) []types.Entry {
 	h := &Heap{}
@@ -65,7 +62,7 @@ func Merge(lists ...[]types.Entry) []types.Entry {
 	}
 
 	slices.SortFunc(merged, func(a, b types.Entry) int {
-		return cmp.Compare(a.Key, b.Key)
+		return types.CompareKeys(a.Key, b.Key)
 	})
 
 	return merged
