@@ -120,6 +120,14 @@ func (mt *memtable) get(key types.Key) (types.Entry, bool) {
 	return mt.skiplist.Get(key)
 }
 
+// first entry greater or equal than key
+func (mt *memtable) lowerBound(key types.Key) (types.Entry, bool) {
+	mt.mu.RLock()
+	defer mt.mu.RUnlock()
+
+	return mt.skiplist.LowerBound(key)
+}
+
 func (mt *memtable) scan(start, end types.Key) []types.Entry {
 	mt.mu.RLock()
 	defer mt.mu.RUnlock()

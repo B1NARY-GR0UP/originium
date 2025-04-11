@@ -143,11 +143,13 @@ func (w *WAL) Write(entries ...types.Entry) error {
 		w.logger.Debugf("wal prepare entry: %+v", entry)
 	}
 
-	err := binary.Write(w.fd, binary.LittleEndian, buf.Bytes())
-	if err != nil {
+	if err := binary.Write(w.fd, binary.LittleEndian, buf.Bytes()); err != nil {
 		return err
 	}
 
+	if err := w.fd.Sync(); err != nil {
+		return err
+	}
 	w.logger.Debugf("wal commit %v bytes of entries", buf.Len())
 	return nil
 }
@@ -203,6 +205,7 @@ func (w *WAL) Read() ([]types.Entry, error) {
 		}
 		entries = append(entries, entry)
 	}
+
 	return entries, nil
 }
 

@@ -24,13 +24,35 @@ type KV struct {
 	V []byte
 }
 
-type (
-	Key   = string
-	Value = []byte
-)
+func KVs(entries []Entry) []KV {
+	var res []KV
+	for _, entry := range entries {
+		if entry.Tombstone {
+			continue
+		}
+		res = append(res, KV{
+			K: entry.Key,
+			V: entry.Value,
+		})
+	}
+	return res
+}
+
+type Key = string
+
+func Value(entry Entry) ([]byte, bool) {
+	if entry.Tombstone {
+		return nil, false
+	}
+	return entry.Value, true
+}
 
 func KeyWithTs(key string, ts uint64) string {
 	return key + "@" + strconv.FormatUint(ts, 10)
+}
+
+func IsSameKey(key1, key2 string) bool {
+	return ParseKey(key1) == ParseKey(key2)
 }
 
 func ParseKey(key string) string {

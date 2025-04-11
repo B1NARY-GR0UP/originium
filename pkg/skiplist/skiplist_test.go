@@ -197,7 +197,7 @@ func TestGreaterOrEqual(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, found := sl.GreaterOrEqual(tt.searchKey)
+		result, found := sl.LowerBound(tt.searchKey)
 		assert.Equal(t, tt.found, found, "search key %s", tt.searchKey)
 		if found {
 			assert.Equal(t, tt.expectKey, result.Key, "search key %s should return %s, but got %s",
@@ -206,11 +206,11 @@ func TestGreaterOrEqual(t *testing.T) {
 	}
 
 	// Verify returning the latest version when searching by base key name
-	entry, found := sl.GreaterOrEqual("a")
+	entry, found := sl.LowerBound("a")
 	assert.True(t, found)
 	assert.Equal(t, types.KeyWithTs("a", 2), entry.Key) // Should return the latest version of a: a@2
 
-	entry, found = sl.GreaterOrEqual("c")
+	entry, found = sl.LowerBound("c")
 	assert.True(t, found)
 	assert.Equal(t, types.KeyWithTs("c", 3), entry.Key) // Should return the latest version of c: c@3
 }

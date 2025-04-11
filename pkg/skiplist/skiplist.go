@@ -149,7 +149,7 @@ func (s *SkipList) Get(key types.Key) (types.Entry, bool) {
 	return types.Entry{}, false
 }
 
-func (s *SkipList) GreaterOrEqual(key types.Key) (types.Entry, bool) {
+func (s *SkipList) LowerBound(key types.Key) (types.Entry, bool) {
 	curr := s.head
 
 	for i := s.maxLevel - 1; i >= 0; i-- {

@@ -43,6 +43,22 @@ func (d *Data) Search(key types.Key) (types.Entry, bool) {
 	return types.Entry{}, false
 }
 
+func (d *Data) LowerBound(key types.Key) (types.Entry, bool) {
+	low, high := 0, len(d.Entries)-1
+	for low <= high {
+		mid := low + ((high - low) >> 1)
+		if types.CompareKeys(d.Entries[mid].Key, key) >= 0 {
+			if mid == 0 || types.CompareKeys(d.Entries[mid-1].Key, key) < 0 {
+				return d.Entries[mid], true
+			}
+			high = mid - 1
+		} else {
+			low = mid + 1
+		}
+	}
+	return types.Entry{}, false
+}
+
 func (d *Data) Scan(start, end types.Key) []types.Entry {
 	var res []types.Entry
 	var found bool

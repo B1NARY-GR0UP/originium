@@ -165,7 +165,7 @@ func (lm *levelManager) recover() {
 	}
 }
 
-func (lm *levelManager) search(key types.Key) (types.Entry, bool) {
+func (lm *levelManager) searchLowerBound(key types.Key) (types.Entry, bool) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
@@ -196,7 +196,7 @@ func (lm *levelManager) search(key types.Key) (types.Entry, bool) {
 			}
 
 			// in this sstable, search according to data block
-			entry, ok := lm.fetchAndSearch(key, level, th.levelIdx, dataBlockHandle)
+			entry, ok := lm.fetchAndSearchLowerBound(key, level, th.levelIdx, dataBlockHandle)
 			if ok {
 				return entry, true
 			}
@@ -337,6 +337,11 @@ func (lm *levelManager) fetch(level, idx int, handle table.BlockHandle) table.Da
 func (lm *levelManager) fetchAndSearch(key types.Key, level, idx int, handle table.BlockHandle) (types.Entry, bool) {
 	dataBlock := lm.fetch(level, idx, handle)
 	return dataBlock.Search(key)
+}
+
+func (lm *levelManager) fetchAndSearchLowerBound(key types.Key, level, idx int, handle table.BlockHandle) (types.Entry, bool) {
+	dataBlock := lm.fetch(level, idx, handle)
+	return dataBlock.LowerBound(key)
 }
 
 func (lm *levelManager) fetchAndScan(start, end types.Key, level, idx int, handle table.BlockHandle) []types.Entry {

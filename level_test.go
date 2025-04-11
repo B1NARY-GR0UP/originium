@@ -38,18 +38,18 @@ func TestSearch(t *testing.T) {
 	err := lm.flushToL0(kvs)
 	assert.NoError(t, err)
 
-	entry, found := lm.search("key1")
+	entry, found := lm.searchLowerBound("key1")
 	assert.True(t, found)
 	assert.Equal(t, "key1", entry.Key)
 	assert.Equal(t, []byte("value1"), entry.Value)
 
-	entry, found = lm.search("key5")
+	entry, found = lm.searchLowerBound("key5")
 	assert.True(t, found)
 	assert.Equal(t, "key5", entry.Key)
 	assert.Equal(t, []byte("value5"), entry.Value)
 	assert.True(t, entry.Tombstone)
 
-	entry, found = lm.search("key7")
+	entry, found = lm.searchLowerBound("key7")
 	assert.Equal(t, types.Entry{}, entry)
 	assert.False(t, found)
 }
@@ -171,7 +171,7 @@ func TestCompact(t *testing.T) {
 
 	// Verify the compaction result
 	for i := 100; i <= 400; i++ {
-		entry, found := lm.search(fmt.Sprintf("key%d", i))
+		entry, found := lm.searchLowerBound(fmt.Sprintf("key%d", i))
 		assert.True(t, found)
 		assert.Equal(t, fmt.Sprintf("key%d", i), entry.Key)
 		assert.Equal(t, []byte(fmt.Sprintf("value%d", i)), entry.Value)

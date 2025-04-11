@@ -24,13 +24,6 @@ import (
 // TODO: introduce builder
 // TODO: binary.LittleEndian.Put
 
-type SSTable struct {
-	DataBlocks []Data
-	MetaBlock  Meta
-	IndexBlock Index
-	Footer     Footer
-}
-
 type BlockHandle struct {
 	Offset uint64
 	Length uint64

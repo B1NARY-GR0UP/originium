@@ -120,21 +120,21 @@ func (db *DB) Close() {
 	<-db.closed
 }
 
-func (db *DB) Read(fn TxnFunc) error {
+func (db *DB) View(fn TxnFunc) error {
 	if db.State() != StateOpened {
 		return ErrNotOpened
 	}
-	txn := db.NewTxn(false)
+	txn := db.Begin(false)
 	defer txn.Discard()
 
 	return fn(txn)
 }
 
-func (db *DB) Write(fn TxnFunc) error {
+func (db *DB) Update(fn TxnFunc) error {
 	if db.State() != StateOpened {
 		return ErrNotOpened
 	}
-	txn := db.NewTxn(true)
+	txn := db.Begin(true)
 	defer txn.Discard()
 
 	if err := fn(txn); err != nil {
@@ -144,14 +144,14 @@ func (db *DB) Write(fn TxnFunc) error {
 	return txn.Commit()
 }
 
-func (db *DB) NewTxn(write bool) *Txn {
+func (db *DB) Begin(update bool) *Txn {
 	txn := &Txn{
 		readTs:   db.oracle.readTs(),
-		readOnly: !write,
+		readOnly: !update,
 		db:       db,
 	}
 
-	if write {
+	if update {
 		txn.pendingWrites = make(map[types.Key]types.Entry)
 		txn.writesFp = make(map[uint64]struct{})
 	}
@@ -194,7 +194,7 @@ func (db *DB) Get(key string) ([]byte, bool) {
 	// search memtable
 	mtEntry, ok := db.memtable.get(key)
 	if ok {
-		return value(mtEntry)
+		return types.Value(mtEntry)
 	}
 
 	// search immutables
@@ -202,15 +202,43 @@ func (db *DB) Get(key string) ([]byte, bool) {
 		imt := e.Value.(*memtable)
 		imtEntry, ok := imt.get(key)
 		if ok {
-			return value(imtEntry)
+			return types.Value(imtEntry)
 		}
 	}
 
 	// search sstables
-	sstEntry, ok := db.manager.search(key)
+	sstEntry, ok := db.manager.searchLowerBound(key)
 	if ok {
-		return value(sstEntry)
+		return types.Value(sstEntry)
 	}
+	return nil, false
+}
+
+func (db *DB) search(key types.Key) ([]byte, bool) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	// search memtable
+	mtEntry, ok := db.memtable.lowerBound(key)
+	if ok && types.IsSameKey(key, mtEntry.Key) {
+		return types.Value(mtEntry)
+	}
+
+	// search immutables
+	for e := db.immutables.Back(); e != nil; e = e.Prev() {
+		imt := e.Value.(*memtable)
+		imtEntry, ok := imt.lowerBound(key)
+		if ok && types.IsSameKey(key, imtEntry.Key) {
+			return types.Value(imtEntry)
+		}
+	}
+
+	// search sstables
+	sstEntry, ok := db.manager.searchLowerBound(key)
+	if ok && types.IsSameKey(key, sstEntry.Key) {
+		return types.Value(sstEntry)
+	}
+
 	return nil, false
 }
 
@@ -235,7 +263,7 @@ func (db *DB) Scan(start, end string) []types.KV {
 
 	slices.Reverse(scan)
 	// merge result
-	return kvs(kway.Merge(scan...))
+	return types.KVs(kway.Merge(scan...))
 }
 
 func (db *DB) MaxVersion() int64 {
@@ -294,25 +322,4 @@ LOOP:
 		}
 	}
 	close(db.closed)
-}
-
-func value(entry types.Entry) ([]byte, bool) {
-	if entry.Tombstone {
-		return nil, false
-	}
-	return entry.Value, true
-}
-
-func kvs(entries []types.Entry) []types.KV {
-	var res []types.KV
-	for _, entry := range entries {
-		if entry.Tombstone {
-			continue
-		}
-		res = append(res, types.KV{
-			K: entry.Key,
-			V: entry.Value,
-		})
-	}
-	return res
 }

@@ -28,7 +28,6 @@ var (
 	ErrDiscardedTxn = errors.New("transaction has been discarded")
 	ErrConflictTxn  = errors.New("transaction has a conflict")
 	ErrEmptyKey     = errors.New("key is empty")
-	ErrKeyNotFound  = errors.New("key not found")
 )
 
 type Txn struct {
@@ -94,22 +93,24 @@ func (t *Txn) Discard() {
 	t.discarded = true
 }
 
-func (t *Txn) Get(key string) ([]byte, error) {
+func (t *Txn) Get(key string) ([]byte, bool) {
 	// validation
 	switch {
 	case t.discarded:
-		return nil, ErrDiscardedTxn
+		t.db.logger.Errorf(ErrDiscardedTxn.Error())
+		return nil, false
 	case key == "":
-		return nil, ErrEmptyKey
+		t.db.logger.Errorf(ErrEmptyKey.Error())
+		return nil, false
 	}
 
 	// write txn
 	if !t.readOnly {
 		if v, ok := t.pendingWrites[key]; ok {
 			if v.Tombstone {
-				return nil, ErrKeyNotFound
+				return nil, false
 			}
-			return v.Value, nil
+			return v.Value, true
 		}
 		// Q: Why is not need to record readFp when read hit the cache?
 		// A: Record readFp is for conflict detection, a conflict will occur when reading a key modified by a committed txn.
@@ -119,9 +120,7 @@ func (t *Txn) Get(key string) ([]byte, error) {
 		t.readsFp = append(t.readsFp, utils.Hash(key))
 	}
 
-	// TODO: search key with ts
-
-	return nil, nil
+	return t.db.search(types.KeyWithTs(key, t.readTs))
 }
 
 func (t *Txn) Set(key string, value []byte) error {

@@ -282,3 +282,135 @@ func TestScanWithVersion(t *testing.T) {
 		assert.Equal(t, tt.expected, result)
 	}
 }
+
+func TestLowerBound(t *testing.T) {
+	// Basic test with multiple versions of a single key
+	data1 := Data{
+		Entries: []types.Entry{
+			{Key: types.KeyWithTs("key1", 30), Value: []byte("value1-v30"), Tombstone: false, Version: 30},
+			{Key: types.KeyWithTs("key1", 20), Value: []byte("value1-v20"), Tombstone: false, Version: 20},
+			{Key: types.KeyWithTs("key1", 10), Value: []byte("value1-v10"), Tombstone: false, Version: 10},
+			{Key: types.KeyWithTs("key2", 20), Value: []byte("value2-v20"), Tombstone: false, Version: 20},
+			{Key: types.KeyWithTs("key3", 10), Value: []byte("value3-v10"), Tombstone: false, Version: 10},
+		},
+	}
+
+	// Multiple versions of multiple keys
+	data2 := Data{
+		Entries: []types.Entry{
+			{Key: types.KeyWithTs("apple", 30), Value: []byte("apple-v30"), Tombstone: false, Version: 30},
+			{Key: types.KeyWithTs("apple", 20), Value: []byte("apple-v20"), Tombstone: false, Version: 20},
+			{Key: types.KeyWithTs("banana", 40), Value: []byte("banana-v40"), Tombstone: false, Version: 40},
+			{Key: types.KeyWithTs("banana", 30), Value: []byte("banana-v30"), Tombstone: false, Version: 30},
+			{Key: types.KeyWithTs("cherry", 10), Value: []byte("cherry-v10"), Tombstone: false, Version: 10},
+		},
+	}
+
+	// Empty data
+	data3 := Data{Entries: []types.Entry{}}
+
+	// Multiple versions of a single key with tombstone
+	data4 := Data{
+		Entries: []types.Entry{
+			{Key: types.KeyWithTs("key1", 40), Value: []byte{}, Tombstone: true, Version: 40},
+			{Key: types.KeyWithTs("key1", 30), Value: []byte("value1-v30"), Tombstone: false, Version: 30},
+			{Key: types.KeyWithTs("key1", 20), Value: []byte("value1-v20"), Tombstone: false, Version: 20},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		data     Data
+		key      string
+		expected types.Entry
+		found    bool
+	}{
+		// data1 test cases
+		{
+			name:     "Find existing key with highest version",
+			data:     data1,
+			key:      types.KeyWithTs("key1", 15),
+			expected: types.Entry{Key: types.KeyWithTs("key1", 10), Value: []byte("value1-v10"), Tombstone: false, Version: 10},
+			found:    true,
+		},
+		{
+			name:     "Find existing key with specific version",
+			data:     data1,
+			key:      types.KeyWithTs("key1", 25),
+			expected: types.Entry{Key: types.KeyWithTs("key1", 20), Value: []byte("value1-v20"), Tombstone: false, Version: 20},
+			found:    true,
+		},
+		{
+			name:     "Find existing key with lowest version",
+			data:     data1,
+			key:      types.KeyWithTs("key1", 5),
+			expected: types.Entry{Key: types.KeyWithTs("key2", 20), Value: []byte("value2-v20"), Tombstone: false, Version: 20},
+			found:    true,
+		},
+		{
+			name:     "Find different key",
+			data:     data1,
+			key:      types.KeyWithTs("key2", 10),
+			expected: types.Entry{Key: types.KeyWithTs("key3", 10), Value: []byte("value3-v10"), Tombstone: false, Version: 10},
+			found:    true,
+		},
+		{
+			name:     "Find key greater than all keys",
+			data:     data1,
+			key:      types.KeyWithTs("key4", 10),
+			expected: types.Entry{},
+			found:    false,
+		},
+
+		// data2 test cases
+		{
+			name:     "Find first key in multiple keys",
+			data:     data2,
+			key:      types.KeyWithTs("apple", 25),
+			expected: types.Entry{Key: types.KeyWithTs("apple", 20), Value: []byte("apple-v20"), Tombstone: false, Version: 20},
+			found:    true,
+		},
+		{
+			name:     "Find middle key in multiple keys",
+			data:     data2,
+			key:      types.KeyWithTs("banana", 30),
+			expected: types.Entry{Key: types.KeyWithTs("banana", 30), Value: []byte("banana-v30"), Tombstone: false, Version: 30},
+			found:    true,
+		},
+		{
+			name:     "Find key between two keys",
+			data:     data2,
+			key:      types.KeyWithTs("avocado", 10),
+			expected: types.Entry{Key: types.KeyWithTs("banana", 40), Value: []byte("banana-v40"), Tombstone: false, Version: 40},
+			found:    true,
+		},
+
+		// data3 test cases
+		{
+			name:     "Empty dataset",
+			data:     data3,
+			key:      types.KeyWithTs("key", 10),
+			expected: types.Entry{},
+			found:    false,
+		},
+
+		// data4 test cases
+		{
+			name:     "Find key with tombstone",
+			data:     data4,
+			key:      types.KeyWithTs("key1", 50),
+			expected: types.Entry{Key: types.KeyWithTs("key1", 40), Value: []byte{}, Tombstone: true, Version: 40},
+			found:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			entry, found := tt.data.LowerBound(tt.key)
+			assert.Equal(t, tt.found, found)
+			if tt.found {
+				assert.Equal(t, tt.expected, entry)
+			}
+		})
+	}
+}
