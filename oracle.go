@@ -17,6 +17,8 @@ package originium
 import (
 	"context"
 	"sync"
+
+	"github.com/B1NARY-GR0UP/originium/pkg/watermark"
 )
 
 type oracle struct {
@@ -38,14 +40,14 @@ type oracle struct {
 	// When a read transaction begins, it waits for commitMark to reach its read timestamp,
 	// ensuring all data that should be visible to it has been written.
 	// This guarantees that the read transaction can see all modifications made by transactions committed before its read timestamp.
-	readMark *WaterMark
+	readMark *watermark.WaterMark
 	// used to track committing txn
 	//
 	// commitMark.DoneUntil
 	// All transactions with timestamps less than or equal to this value have completed their commit processing.
 	// This implies that all transactions with timestamps less than or equal to this value have finished writing data,
 	// and new read transactions can safely read this data.
-	commitMark *WaterMark
+	commitMark *watermark.WaterMark
 
 	committedTxns []committedTxn
 }
@@ -57,8 +59,8 @@ type committedTxn struct {
 
 func newOracle() *oracle {
 	return &oracle{
-		readMark:   NewWaterMark(),
-		commitMark: NewWaterMark(),
+		readMark:   watermark.New(),
+		commitMark: watermark.New(),
 	}
 }
 

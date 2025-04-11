@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package originium
+package watermark
 
 import (
 	"container/heap"
@@ -38,7 +38,7 @@ type mark struct {
 	waiter chan struct{}
 }
 
-func NewWaterMark() *WaterMark {
+func New() *WaterMark {
 	w := &WaterMark{
 		markC: make(chan mark, _markCBufferSize),
 		stopC: make(chan struct{}),

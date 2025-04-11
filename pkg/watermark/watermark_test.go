@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package originium
+package watermark
 
 import (
 	"context"
@@ -24,14 +24,14 @@ import (
 )
 
 func TestWaterMarkBasic(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	assert.Equal(t, uint64(0), w.DoneUntil())
 }
 
 func TestWaterMarkBeginDone(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	w.Begin(100)
@@ -43,7 +43,7 @@ func TestWaterMarkBeginDone(t *testing.T) {
 }
 
 func TestWaterMarkMultipleMarks(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	w.Begin(100)
@@ -69,7 +69,7 @@ func TestWaterMarkMultipleMarks(t *testing.T) {
 }
 
 func TestWaterMarkWaitForMark(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -93,7 +93,7 @@ func TestWaterMarkWaitForMark(t *testing.T) {
 }
 
 func TestWaterMarkWaitTimeout(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
@@ -107,7 +107,7 @@ func TestWaterMarkWaitTimeout(t *testing.T) {
 }
 
 func TestWaterMarkOutOfOrderCompletion(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	w.Begin(300)
@@ -128,7 +128,7 @@ func TestWaterMarkOutOfOrderCompletion(t *testing.T) {
 }
 
 func TestWaterMarkConcurrentOperations(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	const numMarks = 100
@@ -152,7 +152,7 @@ func TestWaterMarkConcurrentOperations(t *testing.T) {
 }
 
 func TestWaterMarkWaitForPastMark(t *testing.T) {
-	w := NewWaterMark()
+	w := New()
 	defer w.Stop()
 
 	w.Begin(100)
