@@ -51,7 +51,7 @@ func newMemtable(dir string, maxLevel int, p float64) *memtable {
 	}
 }
 
-func (mt *memtable) recover() {
+func (mt *memtable) recover() int64 {
 	mt.mu.Lock()
 	defer mt.mu.Unlock()
 	defer utils.Elapsed(time.Now(), mt.logger, "memtable recover")
@@ -69,10 +69,12 @@ func (mt *memtable) recover() {
 	}
 
 	if len(walFiles) == 0 {
-		return
+		return 0
 	}
 
 	slices.Sort(walFiles)
+
+	var maxVersion int64
 
 	mt.logger.Infof("found %d wal file, recovery start", len(walFiles))
 	// merge wal files
@@ -81,21 +83,29 @@ func (mt *memtable) recover() {
 		if err != nil {
 			mt.logger.Panicf("open wal %v failed: %v", file, err)
 		}
+
 		entries, err := l.Read()
 		if err != nil {
 			mt.logger.Panicf("read wal %v failed: %v", file, err)
 		}
+
 		for _, entry := range entries {
+			// record max version
+			maxVersion = max(maxVersion, entry.Version)
+
 			mt.skiplist.Set(entry)
 			if err = mt.wal.Write(entry); err != nil {
 				mt.logger.Panicf("write wal failed: %v", err)
 			}
 		}
+
 		if err = l.Delete(); err != nil {
 			mt.logger.Panicf("delete wal %v failed: %v", file, err)
 		}
 	}
 	mt.logger.Infof("recovery finished")
+
+	return maxVersion
 }
 
 func (mt *memtable) set(entry types.Entry) {

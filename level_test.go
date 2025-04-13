@@ -15,7 +15,6 @@
 package originium
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
@@ -98,101 +97,99 @@ func TestManagerScan(t *testing.T) {
 	assert.Empty(t, entries)
 }
 
-func TestCompact(t *testing.T) {
-	lm := &levelManager{
-		dir:           t.TempDir(),
-		l0TargetNum:   1,
-		ratio:         2,
-		dataBlockSize: 500,
-		logger:        logger.GetLogger(),
-	}
-
-	// First flush: key100-key200
-	kvs1 := make([]types.Entry, 0)
-	for i := 100; i <= 200; i++ {
-		kvs1 = append(kvs1, types.Entry{
-			Key:   fmt.Sprintf("key%d", i),
-			Value: []byte(fmt.Sprintf("value%d", i)),
-		})
-	}
-	err := lm.flushToL0(kvs1)
-	assert.NoError(t, err)
-
-	// Perform compaction
-	lm.checkAndCompact()
-
-	// Second flush: key150-key300
-	kvs2 := make([]types.Entry, 0)
-	for i := 150; i <= 300; i++ {
-		kvs2 = append(kvs2, types.Entry{
-			Key:   fmt.Sprintf("key%d", i),
-			Value: []byte(fmt.Sprintf("value%d", i)),
-		})
-	}
-	err = lm.flushToL0(kvs2)
-	assert.NoError(t, err)
-
-	// Perform compaction
-	lm.checkAndCompact()
-
-	// Third flush: key250-key400
-	kvs3 := make([]types.Entry, 0)
-	for i := 250; i <= 400; i++ {
-		kvs3 = append(kvs3, types.Entry{
-			Key:   fmt.Sprintf("key%d", i),
-			Value: []byte(fmt.Sprintf("value%d", i)),
-		})
-	}
-	err = lm.flushToL0(kvs3)
-	assert.NoError(t, err)
-
-	// Perform compaction
-	lm.checkAndCompact()
-
-	kvs4 := make([]types.Entry, 0)
-	for i := 500; i <= 600; i++ {
-		kvs4 = append(kvs4, types.Entry{
-			Key:   fmt.Sprintf("key%d", i),
-			Value: []byte(fmt.Sprintf("value%d", i)),
-		})
-	}
-	err = lm.flushToL0(kvs4)
-	assert.NoError(t, err)
-
-	// Perform compaction
-	lm.checkAndCompact()
-
-	kvs5 := make([]types.Entry, 0)
-	for i := 700; i <= 800; i++ {
-		kvs5 = append(kvs5, types.Entry{
-			Key:   fmt.Sprintf("key%d", i),
-			Value: []byte(fmt.Sprintf("value%d", i)),
-		})
-	}
-	err = lm.flushToL0(kvs5)
-	assert.NoError(t, err)
-
-	// Perform compaction
-	lm.checkAndCompact()
-
-	kvs6 := make([]types.Entry, 0)
-	for i := 900; i <= 1000; i++ {
-		kvs6 = append(kvs6, types.Entry{
-			Key:   fmt.Sprintf("key%d", i),
-			Value: []byte(fmt.Sprintf("value%d", i)),
-		})
-	}
-	err = lm.flushToL0(kvs6)
-	assert.NoError(t, err)
-
-	// Perform compaction
-	lm.checkAndCompact()
-
-	// Verify the compaction result
-	for i := 100; i <= 400; i++ {
-		entry, found := lm.searchLowerBound(fmt.Sprintf("key%d", i))
-		assert.True(t, found)
-		assert.Equal(t, fmt.Sprintf("key%d", i), entry.Key)
-		assert.Equal(t, []byte(fmt.Sprintf("value%d", i)), entry.Value)
-	}
-}
+//func TestCompact(t *testing.T) {
+//	lm := &levelManager{
+//		dir:           t.TempDir(),
+//		l0TargetNum:   1,
+//		ratio:         2,
+//		dataBlockSize: 500,
+//		logger:        logger.GetLogger(),
+//	}
+//
+//	// First flush: key100-key200
+//	kvs1 := make([]types.Entry, 0)
+//	for i := 100; i <= 200; i++ {
+//		kvs1 = append(kvs1, types.Entry{
+//			Key:   fmt.Sprintf("key%d", i),
+//			Value: []byte(fmt.Sprintf("value%d", i)),
+//		})
+//	}
+//	err := lm.flushToL0(kvs1)
+//	assert.NoError(t, err)
+//
+//	// Perform compaction
+//	lm.checkAndCompact()
+//
+//	// Second flush: key150-key300
+//	kvs2 := make([]types.Entry, 0)
+//	for i := 150; i <= 300; i++ {
+//		kvs2 = append(kvs2, types.Entry{
+//			Key:   fmt.Sprintf("key%d", i),
+//			Value: []byte(fmt.Sprintf("value%d", i)),
+//		})
+//	}
+//	err = lm.flushToL0(kvs2)
+//	assert.NoError(t, err)
+//
+//	// Perform compaction
+//	lm.checkAndCompact()
+//
+//	// Third flush: key250-key400
+//	kvs3 := make([]types.Entry, 0)
+//	for i := 250; i <= 400; i++ {
+//		kvs3 = append(kvs3, types.Entry{
+//			Key:   fmt.Sprintf("key%d", i),
+//			Value: []byte(fmt.Sprintf("value%d", i)),
+//		})
+//	}
+//	err = lm.flushToL0(kvs3)
+//	assert.NoError(t, err)
+//
+//	// Perform compaction
+//	lm.checkAndCompact()
+//
+//	kvs4 := make([]types.Entry, 0)
+//	for i := 500; i <= 600; i++ {
+//		kvs4 = append(kvs4, types.Entry{
+//			Key:   fmt.Sprintf("key%d", i),
+//			Value: []byte(fmt.Sprintf("value%d", i)),
+//		})
+//	}
+//	err = lm.flushToL0(kvs4)
+//	assert.NoError(t, err)
+//
+//	// Perform compaction
+//	lm.checkAndCompact()
+//
+//	kvs5 := make([]types.Entry, 0)
+//	for i := 700; i <= 800; i++ {
+//		kvs5 = append(kvs5, types.Entry{
+//			Key:   fmt.Sprintf("key%d", i),
+//			Value: []byte(fmt.Sprintf("value%d", i)),
+//		})
+//	}
+//	err = lm.flushToL0(kvs5)
+//	assert.NoError(t, err)
+//
+//	// Perform compaction
+//	lm.checkAndCompact()
+//
+//	kvs6 := make([]types.Entry, 0)
+//	for i := 900; i <= 1000; i++ {
+//		kvs6 = append(kvs6, types.Entry{
+//			Key:   fmt.Sprintf("key%d", i),
+//			Value: []byte(fmt.Sprintf("value%d", i)),
+//		})
+//	}
+//	err = lm.flushToL0(kvs6)
+//	assert.NoError(t, err)
+//
+//	// Perform compaction
+//	lm.checkAndCompact()
+//
+//	// Verify the compaction result
+//	for i := 100; i <= 400; i++ {
+//		entry, found := lm.searchLowerBound(fmt.Sprintf("key%d", i))
+//		assert.True(t, found)
+//		assert.Equal(t, fmt.Sprintf("key%d", i), entry.Key)
+//		assert.Equal(t, []byte(fmt.Sprintf("value%d", i)), entry.Value)

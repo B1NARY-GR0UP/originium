@@ -68,7 +68,7 @@ func newLevelManager(db *DB) *levelManager {
 	}
 }
 
-func (lm *levelManager) recover() {
+func (lm *levelManager) recover() int64 {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 	defer utils.Elapsed(time.Now(), lm.logger, "level index recover")
@@ -86,10 +86,12 @@ func (lm *levelManager) recover() {
 	}
 
 	if len(dbFiles) == 0 {
-		return
+		return 0
 	}
 
 	slices.Sort(dbFiles)
+
+	var maxVersion int64
 
 	for _, file := range dbFiles {
 		level, idx, err := parseFileName(file)
@@ -153,6 +155,11 @@ func (lm *levelManager) recover() {
 			lm.logger.Panicf("failed to decode data block: %v", err)
 		}
 
+		// record max version
+		for _, entry := range dataBlock.Entries {
+			maxVersion = max(maxVersion, entry.Version)
+		}
+
 		// build bloom filter
 		bf := filter.Build(dataBlock.Entries)
 
@@ -168,6 +175,8 @@ func (lm *levelManager) recover() {
 
 		lm.levels[level].PushBack(th)
 	}
+
+	return maxVersion
 }
 
 func (lm *levelManager) searchLowerBound(key types.Key) (types.Entry, bool) {

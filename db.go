@@ -84,17 +84,17 @@ func Open(dir string, config Config) (*DB, error) {
 
 	// recover from exist wal
 	mt := newMemtable(dir, config.SkipListMaxLevel, config.SkipListP)
-	mt.recover()
+	walMaxVersion := mt.recover()
 
 	// recover from exist data file
 	lm := newLevelManager(db)
-	lm.recover()
+	dbMaxVersion := lm.recover()
 
 	db.memtable = mt
 	db.manager = lm
 
 	// recover oracle
-	maxTs := uint64(db.MaxVersion())
+	maxTs := uint64(max(walMaxVersion, dbMaxVersion))
 	db.oracle.readMark.Done(maxTs)
 	db.oracle.commitMark.Done(maxTs)
 	db.oracle.nextTs = maxTs + 1
@@ -264,11 +264,6 @@ func (db *DB) Scan(start, end string) []types.KV {
 	slices.Reverse(scan)
 	// merge result
 	return types.KVs(kway.Merge(scan...))
-}
-
-func (db *DB) MaxVersion() int64 {
-	// TODO
-	return 0
 }
 
 func (db *DB) rawset(entry types.Entry) {
