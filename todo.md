@@ -1,7 +1,7 @@
 - [x] bloom filter (used to optimize search non-exist key)
 - [x] range get
 - [x] optimize set
-- [ ] tx, mvcc
+- [x] tx, mvcc
 - [ ] iterator
 - [ ] error handling
 - [ ] restrict sstable size (maybe need a goroutine to check size, then divide or merge)

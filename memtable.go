@@ -120,7 +120,7 @@ func (mt *memtable) set(entry types.Entry) {
 	if err := mt.wal.Write(entry); err != nil {
 		mt.logger.Panicf("write wal failed: %v", err)
 	}
-	mt.logger.Infof("memtable set [key: %v] [value: %v] [tombstone: %v]", entry.Key, string(entry.Value), entry.Tombstone)
+	mt.logger.Infof("memtable set [key: %v] [value: %v] [tombstone: %v] [version: %v]", entry.Key, string(entry.Value), entry.Tombstone, entry.Version)
 }
 
 func (mt *memtable) get(key types.Key) (types.Entry, bool) {

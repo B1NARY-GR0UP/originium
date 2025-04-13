@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	ErrMkDir     = errors.New("failed to create db dir")
-	ErrNotOpened = errors.New("db not opened")
+	ErrMkDir    = errors.New("failed to create db dir")
+	ErrDBClosed = errors.New("db closed")
 )
 
 type DB struct {
@@ -121,8 +121,8 @@ func (db *DB) Close() {
 }
 
 func (db *DB) View(fn TxnFunc) error {
-	if db.State() != StateOpened {
-		return ErrNotOpened
+	if db.State() == StateClosed {
+		return ErrDBClosed
 	}
 	txn := db.Begin(false)
 	defer txn.Discard()
@@ -131,8 +131,8 @@ func (db *DB) View(fn TxnFunc) error {
 }
 
 func (db *DB) Update(fn TxnFunc) error {
-	if db.State() != StateOpened {
-		return ErrNotOpened
+	if db.State() == StateClosed {
+		return ErrDBClosed
 	}
 	txn := db.Begin(true)
 	defer txn.Discard()

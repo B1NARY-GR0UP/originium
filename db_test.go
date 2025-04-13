@@ -81,10 +81,19 @@ func TestSetAndGet(t *testing.T) {
 	key := "key1"
 	value := []byte("value1")
 
-	db.Set(key, value)
-	result, found := db.Get(key)
-	assert.True(t, found)
-	assert.Equal(t, value, result)
+	if err = db.Update(func(txn *Txn) error {
+		err = txn.Set(key, value)
+		if err != nil {
+			return err
+		}
+		res, found := txn.Get(key)
+
+		assert.True(t, found)
+		assert.Equal(t, value, res)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestScan(t *testing.T) {
@@ -171,9 +180,23 @@ func TestDelete(t *testing.T) {
 	key := "key1"
 	value := []byte("value1")
 
-	db.Set(key, value)
-	db.Delete(key)
-	result, found := db.Get(key)
-	assert.False(t, found)
-	assert.Nil(t, result)
+	err = db.Update(func(txn *Txn) error {
+		err = txn.Set(key, value)
+		assert.NoError(t, err)
+
+		result, found := txn.Get(key)
+		assert.Equal(t, value, result)
+		assert.True(t, found)
+
+		err = txn.Delete(key)
+		assert.NoError(t, err)
+
+		result, found = txn.Get(key)
+		assert.False(t, found)
+		assert.Nil(t, result)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
