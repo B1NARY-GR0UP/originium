@@ -18,13 +18,20 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/B1NARY-GR0UP/originium/pkg/logger"
 	"github.com/B1NARY-GR0UP/originium/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSearch(t *testing.T) {
 	dir := t.TempDir()
-	lm := newLevelManager(dir, 4, 10, 4096)
+	lm := &levelManager{
+		dir:           dir,
+		l0TargetNum:   4,
+		ratio:         10,
+		dataBlockSize: 4096,
+		logger:        logger.GetLogger(),
+	}
 
 	kvs := []types.Entry{
 		{Key: "key1", Value: []byte("value1")},
@@ -56,7 +63,13 @@ func TestSearch(t *testing.T) {
 
 func TestManagerScan(t *testing.T) {
 	dir := t.TempDir()
-	lm := newLevelManager(dir, 4, 10, 4096)
+	lm := &levelManager{
+		dir:           dir,
+		l0TargetNum:   4,
+		ratio:         10,
+		dataBlockSize: 4096,
+		logger:        logger.GetLogger(),
+	}
 
 	kvs := []types.Entry{
 		{Key: "key1", Value: []byte("value1")},
@@ -86,7 +99,13 @@ func TestManagerScan(t *testing.T) {
 }
 
 func TestCompact(t *testing.T) {
-	lm := newLevelManager(t.TempDir(), 1, 2, 500)
+	lm := &levelManager{
+		dir:           t.TempDir(),
+		l0TargetNum:   1,
+		ratio:         2,
+		dataBlockSize: 500,
+		logger:        logger.GetLogger(),
+	}
 
 	// First flush: key100-key200
 	kvs1 := make([]types.Entry, 0)

@@ -14,6 +14,8 @@
 
 package originium
 
+import "os"
+
 const (
 	_kb = 1024
 	_mb = 1024 * _kb
@@ -35,6 +37,8 @@ type Config struct {
 	// Level Config
 	L0TargetNum int
 	LevelRatio  int
+
+	FileMode os.FileMode
 }
 
 var DefaultConfig = Config{
@@ -45,6 +49,7 @@ var DefaultConfig = Config{
 	DataBlockByteThreshold: 4 * _kb,
 	L0TargetNum:            5,
 	LevelRatio:             10,
+	FileMode:               0755,
 }
 
 func (c *Config) validate() error {
@@ -65,6 +70,9 @@ func (c *Config) validate() error {
 	}
 	if c.LevelRatio <= 0 {
 		c.LevelRatio = DefaultConfig.LevelRatio
+	}
+	if c.FileMode <= 0 {
+		c.FileMode = DefaultConfig.FileMode
 	}
 	return nil
 }

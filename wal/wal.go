@@ -50,7 +50,7 @@ func Create(dir string) (*WAL, error) {
 
 	name := path.Join(dir, fmt.Sprintf("wal-%s.log", version))
 
-	file, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
+	file, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func Open(file string) (*WAL, error) {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return nil, err
 	}
-	fd, err := os.OpenFile(file, os.O_RDWR|os.O_APPEND, 0600)
+	fd, err := os.OpenFile(file, os.O_RDWR|os.O_APPEND, 0755)
 	if err != nil {
 		return nil, err
 	}

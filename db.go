@@ -65,7 +65,7 @@ func Open(dir string, config Config) (*DB, error) {
 		return nil, err
 	}
 
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, config.FileMode); err != nil {
 		return nil, ErrMkDir
 	}
 
@@ -86,8 +86,8 @@ func Open(dir string, config Config) (*DB, error) {
 	mt := newMemtable(dir, config.SkipListMaxLevel, config.SkipListP)
 	mt.recover()
 
-	// recover from exist db
-	lm := newLevelManager(dir, config.L0TargetNum, config.LevelRatio, config.DataBlockByteThreshold)
+	// recover from exist data file
+	lm := newLevelManager(db)
 	lm.recover()
 
 	db.memtable = mt

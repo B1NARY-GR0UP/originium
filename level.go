@@ -34,14 +34,18 @@ import (
 )
 
 type levelManager struct {
-	mu            sync.Mutex
+	mu sync.Mutex
+
 	dir           string
 	l0TargetNum   int
 	ratio         int
 	dataBlockSize int
+
 	// list.Element: tableHandle
 	levels []*list.List
 	logger logger.Logger
+
+	db *DB
 }
 
 type tableHandle struct {
@@ -53,13 +57,14 @@ type tableHandle struct {
 	dataBlockIndex table.Index
 }
 
-func newLevelManager(dir string, l0TargetNum, ratio, blockSize int) *levelManager {
+func newLevelManager(db *DB) *levelManager {
 	return &levelManager{
-		dir:           dir,
-		l0TargetNum:   l0TargetNum,
-		ratio:         ratio,
-		dataBlockSize: blockSize,
+		dir:           db.dir,
+		l0TargetNum:   db.config.L0TargetNum,
+		ratio:         db.config.LevelRatio,
+		dataBlockSize: db.config.DataBlockByteThreshold,
 		logger:        logger.GetLogger(),
+		db:            db,
 	}
 }
 
@@ -349,7 +354,6 @@ func (lm *levelManager) fetchAndScan(start, end types.Key, level, idx int, handl
 	return dataBlock.Scan(start, end)
 }
 
-// TODO: remove version <= discardAtOrBelow and keep a latest version
 // L0 -> L1
 func (lm *levelManager) compactL0() {
 	defer utils.Elapsed(time.Now(), lm.logger, "compact level 0")
@@ -387,10 +391,12 @@ func (lm *levelManager) compactL0() {
 	// merge sstables
 	mergedEntries := kway.Merge(dataBlockList...)
 
+	discarded := lm.discardStaleEntries(mergedEntries)
+
 	// build new bloom filter
-	bf := filter.Build(mergedEntries)
+	bf := filter.Build(discarded)
 	// build new sstable
-	dataBlockIndex, tableBytes := table.Build(mergedEntries, lm.dataBlockSize, 1)
+	dataBlockIndex, tableBytes := table.Build(discarded, lm.dataBlockSize, 1)
 
 	// table handle
 	th := tableHandle{
@@ -472,10 +478,12 @@ func (lm *levelManager) compactLN(n int) {
 	// merge sstables
 	mergedEntries := kway.Merge(dataBlockList...)
 
+	discarded := lm.discardStaleEntries(mergedEntries)
+
 	// build new bloom filter
-	bf := filter.Build(mergedEntries)
+	bf := filter.Build(discarded)
 	// build new sstable
-	dataBlockIndex, tableBytes := table.Build(mergedEntries, lm.dataBlockSize, n+1)
+	dataBlockIndex, tableBytes := table.Build(discarded, lm.dataBlockSize, n+1)
 
 	// table handle
 	th := tableHandle{
@@ -523,6 +531,45 @@ func (lm *levelManager) compactLN(n int) {
 	}
 }
 
+// remove version <= discardAtOrBelow and keep latest version
+func (lm *levelManager) discardStaleEntries(entries []types.Entry) []types.Entry {
+	low := lm.db.oracle.discardAtOrBelow()
+	if low == 0 {
+		return entries
+	}
+	res := make([]types.Entry, 0, len(entries))
+	latest := make(map[string]types.Entry)
+
+	for _, entry := range entries {
+		key := types.ParseKey(entry.Key)
+		ts := types.ParseTs(entry.Key)
+
+		if ts > low {
+			res = append(res, entry)
+			continue
+		}
+
+		if maxEntry, ok := latest[key]; ok {
+			maxTS := types.ParseTs(maxEntry.Key)
+			if ts > maxTS {
+				latest[key] = entry
+			}
+			continue
+		}
+		latest[key] = entry
+	}
+
+	for _, entry := range latest {
+		res = append(res, entry)
+	}
+
+	slices.SortFunc(res, func(a, b types.Entry) int {
+		return types.CompareKeys(a.Key, b.Key)
+	})
+
+	return res
+}
+
 func (lm *levelManager) overlapL0() []*list.Element {
 	frontIndex := lm.levels[0].Front().Value.(tableHandle).dataBlockIndex
 
@@ -543,7 +590,8 @@ func (lm *levelManager) overlapLN(level int, start, end string) []*list.Element 
 	var overlaps []*list.Element
 	for e := ln.Front(); e != nil; e = e.Next() {
 		index := e.Value.(tableHandle).dataBlockIndex
-		if index.Entries[0].StartKey <= end && index.Entries[len(index.Entries)-1].EndKey >= start {
+		if types.CompareKeys(index.Entries[0].StartKey, end) <= 0 &&
+			types.CompareKeys(index.Entries[len(index.Entries)-1].EndKey, start) >= 0 {
 			overlaps = append(overlaps, e)
 		}
 	}
