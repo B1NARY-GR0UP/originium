@@ -39,7 +39,7 @@ func main() {
 - Read-only transaction
 
 ```go
-err := db.View(func(txn *originium.Txn) error {
+	err := db.View(func(txn *originium.Txn) error {
 // ...
 
 res, ok := txn.Get("hello")
@@ -55,7 +55,7 @@ return nil
 - Read-write transaction
 
 ```go
-err := db.Update(func(txn *originium.Txn) error {
+	err := db.Update(func(txn *originium.Txn) error {
 // ...
 
 if err := txn.Set("hello", []byte("originium")); err != nil {
@@ -70,7 +70,7 @@ return nil
 - Manually
 
 ```go
-// start a read-write transaction manually
+	// start a read-write transaction manually
 txn := db.Begin(true)
 defer txn.Discard()
 
