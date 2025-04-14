@@ -16,21 +16,21 @@ go get -u github.com/B1NARY-GR0UP/originium
 package main
 
 import (
-	"log"
+    "log"
 
-	"github.com/B1NARY-GR0UP/originium"
+    "github.com/B1NARY-GR0UP/originium"
 )
 
 func main() {
-	// Use originium.Config to customize your db behavior
-	db, err := originium.Open("your-dir", originium.DefaultConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
+    // Use originium.Config to customize your db behavior
+    db, err := originium.Open("your-dir", originium.DefaultConfig)
+    if err != nil {
+        log.Fatal(err)
+    }
 
-	defer db.Close()
+    defer db.Close()
 
-	// ...
+    // ...
 }
 ```
 
