@@ -21,7 +21,6 @@ import (
 	"os"
 	"path"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -192,12 +191,7 @@ func (lm *levelManager) searchLowerBound(key types.Key) (types.Entry, bool) {
 			th := e.Value.(tableHandle)
 
 			// search bloom filter
-			// TODO: remove this
-			k := key
-			if strings.LastIndex(k, "@") != -1 {
-				k = types.ParseKey(k)
-			}
-			if !th.filter.Contains(k) {
+			if !th.filter.Contains(types.ParseKey(key)) {
 				// not in this sstable, search next one
 				continue
 			}
@@ -220,6 +214,7 @@ func (lm *levelManager) searchLowerBound(key types.Key) (types.Entry, bool) {
 	return types.Entry{}, false
 }
 
+// TODO: replace with iterator
 func (lm *levelManager) scan(start, end types.Key) []types.Entry {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()

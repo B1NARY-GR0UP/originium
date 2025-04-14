@@ -23,19 +23,19 @@ import (
 
 func TestMerge(t *testing.T) {
 	list1 := []types.Entry{
-		{Key: "a", Value: []byte("1")},
-		{Key: "c", Value: []byte("3")},
+		{Key: "a@1", Value: []byte("1")},
+		{Key: "c@1", Value: []byte("3")},
 	}
 	list2 := []types.Entry{
-		{Key: "b", Value: []byte("2")},
-		{Key: "d", Value: []byte("4")},
+		{Key: "b@1", Value: []byte("2")},
+		{Key: "d@1", Value: []byte("4")},
 	}
 
 	expected := []types.Entry{
-		{Key: "a", Value: []byte("1")},
-		{Key: "b", Value: []byte("2")},
-		{Key: "c", Value: []byte("3")},
-		{Key: "d", Value: []byte("4")},
+		{Key: "a@1", Value: []byte("1")},
+		{Key: "b@1", Value: []byte("2")},
+		{Key: "c@1", Value: []byte("3")},
+		{Key: "d@1", Value: []byte("4")},
 	}
 
 	result := Merge(list1, list2)
@@ -115,21 +115,21 @@ func TestMergeDuplicateWithTs2(t *testing.T) {
 
 func TestMergeDuplicate(t *testing.T) {
 	list1 := []types.Entry{
-		{Key: "a", Value: []byte("10")},
-		{Key: "b", Value: []byte("2")},
-		{Key: "c", Value: []byte("10")},
-		{Key: "d", Value: []byte("4")},
+		{Key: "a@1", Value: []byte("10")},
+		{Key: "b@1", Value: []byte("2")},
+		{Key: "c@1", Value: []byte("10")},
+		{Key: "d@1", Value: []byte("4")},
 	}
 	list2 := []types.Entry{
-		{Key: "a", Value: []byte("1")},
-		{Key: "c", Value: []byte("3")},
+		{Key: "a@1", Value: []byte("1")},
+		{Key: "c@1", Value: []byte("3")},
 	}
 
 	expected := []types.Entry{
-		{Key: "a", Value: []byte("1")},
-		{Key: "b", Value: []byte("2")},
-		{Key: "c", Value: []byte("3")},
-		{Key: "d", Value: []byte("4")},
+		{Key: "a@1", Value: []byte("1")},
+		{Key: "b@1", Value: []byte("2")},
+		{Key: "c@1", Value: []byte("3")},
+		{Key: "d@1", Value: []byte("4")},
 	}
 
 	result := Merge(list1, list2)
@@ -138,19 +138,19 @@ func TestMergeDuplicate(t *testing.T) {
 
 func TestMergeTombstone(t *testing.T) {
 	list1 := []types.Entry{
-		{Key: "a", Value: []byte("10")},
-		{Key: "b", Value: []byte("2")},
-		{Key: "c", Value: []byte("10")},
-		{Key: "d", Value: []byte("4")},
+		{Key: "a@1", Value: []byte("10")},
+		{Key: "b@1", Value: []byte("2")},
+		{Key: "c@1", Value: []byte("10")},
+		{Key: "d@1", Value: []byte("4")},
 	}
 	list2 := []types.Entry{
-		{Key: "a", Value: []byte("1"), Tombstone: true},
-		{Key: "c", Value: []byte("3"), Tombstone: true},
+		{Key: "a@1", Value: []byte("1"), Tombstone: true},
+		{Key: "c@1", Value: []byte("3"), Tombstone: true},
 	}
 
 	expected := []types.Entry{
-		{Key: "b", Value: []byte("2")},
-		{Key: "d", Value: []byte("4")},
+		{Key: "b@1", Value: []byte("2")},
+		{Key: "d@1", Value: []byte("4")},
 	}
 
 	result := Merge(list1, list2)

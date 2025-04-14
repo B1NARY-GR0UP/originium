@@ -27,9 +27,9 @@ func TestHeap(t *testing.T) {
 	heap.Init(h)
 
 	entries := []types.Entry{
-		{Key: "c", Value: []byte("3")},
-		{Key: "a", Value: []byte("1")},
-		{Key: "b", Value: []byte("2")},
+		{Key: "c@1", Value: []byte("3")},
+		{Key: "a@1", Value: []byte("1")},
+		{Key: "b@1", Value: []byte("2")},
 	}
 
 	for _, entry := range entries {
@@ -37,9 +37,9 @@ func TestHeap(t *testing.T) {
 	}
 
 	expectedOrder := []types.Entry{
-		{Key: "a", Value: []byte("1")},
-		{Key: "b", Value: []byte("2")},
-		{Key: "c", Value: []byte("3")},
+		{Key: "a@1", Value: []byte("1")},
+		{Key: "b@1", Value: []byte("2")},
+		{Key: "c@1", Value: []byte("3")},
 	}
 
 	for _, expected := range expectedOrder {

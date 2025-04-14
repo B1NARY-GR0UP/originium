@@ -25,14 +25,14 @@ func TestMemtableSetAndGet(t *testing.T) {
 	dir := t.TempDir()
 	mt := newMemtable(dir, 4, 0.5)
 
-	entry := types.Entry{Key: "key1", Value: []byte("value1"), Tombstone: false}
+	entry := types.Entry{Key: "key1@1", Value: []byte("value1"), Tombstone: false}
 
 	mt.set(entry)
 	gotValue, ok := mt.get(entry.Key)
 	assert.True(t, ok)
 	assert.Equal(t, entry, gotValue)
 
-	got, ok := mt.get("hello")
+	got, ok := mt.get("hello@1")
 	assert.Equal(t, types.Entry{}, got)
 	assert.False(t, ok)
 

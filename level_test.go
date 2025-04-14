@@ -33,29 +33,29 @@ func TestSearch(t *testing.T) {
 	}
 
 	kvs := []types.Entry{
-		{Key: "key1", Value: []byte("value1")},
-		{Key: "key2", Value: []byte("value2")},
-		{Key: "key3", Value: []byte("value3")},
-		{Key: "key4", Value: []byte("value4")},
-		{Key: "key5", Value: []byte("value5"), Tombstone: true},
-		{Key: "key6", Value: []byte("value6")},
+		{Key: "key1@1", Value: []byte("value1")},
+		{Key: "key2@1", Value: []byte("value2")},
+		{Key: "key3@1", Value: []byte("value3")},
+		{Key: "key4@1", Value: []byte("value4")},
+		{Key: "key5@1", Value: []byte("value5"), Tombstone: true},
+		{Key: "key6@1", Value: []byte("value6")},
 	}
 
 	err := lm.flushToL0(kvs)
 	assert.NoError(t, err)
 
-	entry, found := lm.searchLowerBound("key1")
+	entry, found := lm.searchLowerBound("key1@1")
 	assert.True(t, found)
-	assert.Equal(t, "key1", entry.Key)
+	assert.Equal(t, "key1@1", entry.Key)
 	assert.Equal(t, []byte("value1"), entry.Value)
 
-	entry, found = lm.searchLowerBound("key5")
+	entry, found = lm.searchLowerBound("key5@1")
 	assert.True(t, found)
-	assert.Equal(t, "key5", entry.Key)
+	assert.Equal(t, "key5@1", entry.Key)
 	assert.Equal(t, []byte("value5"), entry.Value)
 	assert.True(t, entry.Tombstone)
 
-	entry, found = lm.searchLowerBound("key7")
+	entry, found = lm.searchLowerBound("key7@1")
 	assert.Equal(t, types.Entry{}, entry)
 	assert.False(t, found)
 }
@@ -71,29 +71,29 @@ func TestManagerScan(t *testing.T) {
 	}
 
 	kvs := []types.Entry{
-		{Key: "key1", Value: []byte("value1")},
-		{Key: "key2", Value: []byte("value2")},
-		{Key: "key3", Value: []byte("value3")},
-		{Key: "key4", Value: []byte("value4")},
-		{Key: "key5", Value: []byte("value5")},
-		{Key: "key6", Value: []byte("value6")},
+		{Key: "key1@1", Value: []byte("value1")},
+		{Key: "key2@1", Value: []byte("value2")},
+		{Key: "key3@1", Value: []byte("value3")},
+		{Key: "key4@1", Value: []byte("value4")},
+		{Key: "key5@1", Value: []byte("value5")},
+		{Key: "key6@1", Value: []byte("value6")},
 	}
 
 	err := lm.flushToL0(kvs)
 	assert.NoError(t, err)
 
 	// Perform scan
-	entries := lm.scan("key2", "key5")
+	entries := lm.scan("key2@1", "key5@1")
 	expectedEntries := []types.Entry{
-		{Key: "key2", Value: []byte("value2")},
-		{Key: "key3", Value: []byte("value3")},
-		{Key: "key4", Value: []byte("value4")},
+		{Key: "key2@1", Value: []byte("value2")},
+		{Key: "key3@1", Value: []byte("value3")},
+		{Key: "key4@1", Value: []byte("value4")},
 	}
 
 	assert.Equal(t, expectedEntries, entries)
 
 	// Test scan with no results
-	entries = lm.scan("key7", "key8")
+	entries = lm.scan("key7@1", "key8")
 	assert.Empty(t, entries)
 }
 

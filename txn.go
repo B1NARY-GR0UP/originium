@@ -21,8 +21,6 @@ import (
 	"github.com/B1NARY-GR0UP/originium/utils"
 )
 
-// TODO: notes about OCC mechanism
-
 var (
 	ErrReadOnlyTxn  = errors.New("transaction is read-only")
 	ErrDiscardedTxn = errors.New("transaction has been discarded")

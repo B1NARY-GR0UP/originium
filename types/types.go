@@ -73,10 +73,6 @@ func ParseTs(key string) uint64 {
 }
 
 func CompareKeys(key1, key2 string) int {
-	if strings.LastIndex(key1, "@") == -1 || strings.LastIndex(key2, "@") == -1 {
-		return strings.Compare(key1, key2)
-	}
-
 	if cmp := strings.Compare(ParseKey(key1), ParseKey(key2)); cmp != 0 {
 		return cmp
 	}

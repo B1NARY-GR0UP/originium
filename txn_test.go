@@ -15,46 +15,13 @@
 package originium
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
-	"fmt"
-	"math"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestLB(t *testing.T) {
-	a := 1000 // 1
-	b := 2000 // 12
-
-	bigEndianBytes := make([]byte, 4)
-	bigEndianBytes2 := make([]byte, 4)
-
-	littleEndianBytes := make([]byte, 4)
-	littleEndianBytes2 := make([]byte, 4)
-
-	binary.BigEndian.PutUint32(bigEndianBytes, math.MaxUint32-uint32(a))
-	binary.BigEndian.PutUint32(bigEndianBytes2, math.MaxUint32-uint32(b))
-
-	fmt.Println(bigEndianBytes)
-	fmt.Println(bigEndianBytes2)
-
-	binary.LittleEndian.PutUint32(littleEndianBytes, math.MaxUint32-uint32(a))
-	binary.LittleEndian.PutUint32(littleEndianBytes2, math.MaxUint32-uint32(b))
-
-	fmt.Println(littleEndianBytes)
-	fmt.Println(littleEndianBytes2)
-
-	compareResult := bytes.Compare(bigEndianBytes, bigEndianBytes2)
-	fmt.Println(compareResult) // -1
-
-	compareResult2 := bytes.Compare(littleEndianBytes, littleEndianBytes2)
-	fmt.Println(compareResult2) // 1
-}
 
 // Initialize a test database
 func setupTestDB(t *testing.T) *DB {

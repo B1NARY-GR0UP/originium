@@ -24,29 +24,29 @@ func TestIndexSearch(t *testing.T) {
 	index := Index{
 		Entries: []IndexEntry{
 			{
-				StartKey: "b",
+				StartKey: "b@1",
 				DataHandle: BlockHandle{
 					Offset: 2,
 					Length: 1,
 				},
 			},
 			{
-				StartKey: "c",
+				StartKey: "c@1",
 				DataHandle: BlockHandle{
 					Offset: 3,
 					Length: 1,
 				},
 			},
 			{
-				StartKey: "d",
+				StartKey: "d@1",
 				DataHandle: BlockHandle{
 					Offset: 4,
 					Length: 1,
 				},
 			},
 			{
-				StartKey: "f",
-				EndKey:   "h",
+				StartKey: "f@1",
+				EndKey:   "h@1",
 				DataHandle: BlockHandle{
 					Offset: 6,
 					Length: 1,
@@ -55,27 +55,27 @@ func TestIndexSearch(t *testing.T) {
 		},
 	}
 
-	dataH, found := index.Search("b")
+	dataH, found := index.Search("b@1")
 	assert.True(t, found)
 	assert.Equal(t, uint64(2), dataH.Offset)
 
-	dataH, found = index.Search("e")
+	dataH, found = index.Search("e@1")
 	assert.True(t, found)
 	assert.Equal(t, uint64(4), dataH.Offset)
 
-	dataH, found = index.Search("a")
+	dataH, found = index.Search("a@1")
 	assert.False(t, found)
 	assert.Equal(t, uint64(0), dataH.Offset)
 
-	dataH, found = index.Search("f")
+	dataH, found = index.Search("f@1")
 	assert.True(t, found)
 	assert.Equal(t, uint64(6), dataH.Offset)
 
-	dataH, found = index.Search("g")
+	dataH, found = index.Search("g@1")
 	assert.True(t, found)
 	assert.Equal(t, uint64(6), dataH.Offset)
 
-	dataH, found = index.Search("i")
+	dataH, found = index.Search("i@1")
 	assert.False(t, found)
 	assert.Equal(t, uint64(0), dataH.Offset)
 }
@@ -88,24 +88,24 @@ func TestIndexEncodeDecode(t *testing.T) {
 		},
 		Entries: []IndexEntry{
 			{
-				StartKey: "a",
-				EndKey:   "q",
+				StartKey: "a@1",
+				EndKey:   "q@1",
 				DataHandle: BlockHandle{
 					Offset: 1,
 					Length: 1,
 				},
 			},
 			{
-				StartKey: "b",
-				EndKey:   "w",
+				StartKey: "b@1",
+				EndKey:   "w@1",
 				DataHandle: BlockHandle{
 					Offset: 2,
 					Length: 1,
 				},
 			},
 			{
-				StartKey: "c",
-				EndKey:   "e",
+				StartKey: "c@1",
+				EndKey:   "e@1",
 				DataHandle: BlockHandle{
 					Offset: 3,
 					Length: 1,

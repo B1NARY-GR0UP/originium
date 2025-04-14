@@ -18,11 +18,9 @@ import (
 	"container/list"
 	"errors"
 	"os"
-	"slices"
 	"sync"
 	"sync/atomic"
 
-	"github.com/B1NARY-GR0UP/originium/pkg/kway"
 	"github.com/B1NARY-GR0UP/originium/pkg/logger"
 	"github.com/B1NARY-GR0UP/originium/types"
 )
@@ -162,58 +160,6 @@ func (db *DB) State() State {
 	return State(atomic.LoadUint32(&db.state))
 }
 
-// Set TODO: remove
-func (db *DB) Set(key string, value []byte) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	db.rawset(types.Entry{
-		Key:       key,
-		Value:     value,
-		Tombstone: false,
-	})
-}
-
-// Delete TODO: remove
-func (db *DB) Delete(key string) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	db.rawset(types.Entry{
-		Key:       key,
-		Value:     []byte{},
-		Tombstone: true,
-	})
-}
-
-// Get TODO: remove
-func (db *DB) Get(key string) ([]byte, bool) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	// search memtable
-	mtEntry, ok := db.memtable.get(key)
-	if ok {
-		return types.Value(mtEntry)
-	}
-
-	// search immutables
-	for e := db.immutables.Back(); e != nil; e = e.Prev() {
-		imt := e.Value.(*memtable)
-		imtEntry, ok := imt.get(key)
-		if ok {
-			return types.Value(imtEntry)
-		}
-	}
-
-	// search sstables
-	sstEntry, ok := db.manager.searchLowerBound(key)
-	if ok {
-		return types.Value(sstEntry)
-	}
-	return nil, false
-}
-
 func (db *DB) search(key types.Key) ([]byte, bool) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
@@ -240,30 +186,6 @@ func (db *DB) search(key types.Key) ([]byte, bool) {
 	}
 
 	return nil, false
-}
-
-// Scan [start, end) TODO: remove
-func (db *DB) Scan(start, end string) []types.KV {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	var scan [][]types.Entry
-
-	// scan memtable
-	scan = append(scan, db.memtable.scan(start, end))
-
-	// scan immutables
-	for e := db.immutables.Back(); e != nil; e = e.Prev() {
-		imt := e.Value.(*memtable)
-		scan = append(scan, imt.scan(start, end))
-	}
-
-	// scan sstables
-	scan = append(scan, db.manager.scan(start, end))
-
-	slices.Reverse(scan)
-	// merge result
-	return types.KVs(kway.Merge(scan...))
 }
 
 func (db *DB) rawset(entry types.Entry) {

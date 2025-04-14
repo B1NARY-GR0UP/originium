@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/B1NARY-GR0UP/originium/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -93,71 +92,6 @@ func TestSetAndGet(t *testing.T) {
 		return nil
 	}); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestScan(t *testing.T) {
-	dir := t.TempDir()
-	config := Config{
-		SkipListMaxLevel:       4,
-		SkipListP:              0.5,
-		L0TargetNum:            1,
-		LevelRatio:             2,
-		DataBlockByteThreshold: 10,
-		MemtableByteThreshold:  50,
-		ImmutableBuffer:        10,
-	}
-
-	db, err := Open(dir, config)
-	defer db.Close()
-	assert.NoError(t, err)
-	assert.NotNil(t, db)
-
-	// Insert test data
-	entries := []types.Entry{
-		{Key: "key1", Value: []byte("value1"), Tombstone: false},
-		{Key: "key2", Value: []byte("value2"), Tombstone: false},
-		{Key: "key3", Value: []byte("value3"), Tombstone: false},
-		{Key: "key4", Value: []byte("value4"), Tombstone: false},
-		{Key: "key5", Value: []byte("value5"), Tombstone: false},
-	}
-
-	for _, entry := range entries {
-		db.Set(entry.Key, entry.Value)
-	}
-
-	tests := []struct {
-		start    string
-		end      string
-		expected []types.KV
-	}{
-		{"key1", "key3", []types.KV{
-			{K: "key1", V: []byte("value1")},
-			{K: "key2", V: []byte("value2")},
-		}},
-		{"key2", "key5", []types.KV{
-			{K: "key2", V: []byte("value2")},
-			{K: "key3", V: []byte("value3")},
-			{K: "key4", V: []byte("value4")},
-		}},
-		{"key3", "key6", []types.KV{
-			{K: "key3", V: []byte("value3")},
-			{K: "key4", V: []byte("value4")},
-			{K: "key5", V: []byte("value5")},
-		}},
-		{"key0", "key6", []types.KV{
-			{K: "key1", V: []byte("value1")},
-			{K: "key2", V: []byte("value2")},
-			{K: "key3", V: []byte("value3")},
-			{K: "key4", V: []byte("value4")},
-			{K: "key5", V: []byte("value5")},
-		}},
-		{"key6", "key7", nil},
-	}
-
-	for _, tt := range tests {
-		result := db.Scan(tt.start, tt.end)
-		assert.Equal(t, tt.expected, result)
 	}
 }
 

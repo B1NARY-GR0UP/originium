@@ -34,17 +34,17 @@ func TestNew(t *testing.T) {
 
 func TestSetAndGet(t *testing.T) {
 	sl := New(4, 0.5)
-	entry := types.Entry{Key: "key1", Value: []byte("value1"), Tombstone: false}
+	entry := types.Entry{Key: "key1@1", Value: []byte("value1"), Tombstone: false}
 	sl.Set(entry)
 
-	result, found := sl.Get("key1")
+	result, found := sl.Get("key1@1")
 	assert.True(t, found)
 	assert.Equal(t, entry, result)
 
 	// Test updating the entry
 	entry.Value = []byte("value2")
 	sl.Set(entry)
-	result, found = sl.Get("key1")
+	result, found = sl.Get("key1@1")
 	assert.True(t, found)
 	assert.Equal(t, entry, result)
 }
@@ -52,10 +52,10 @@ func TestSetAndGet(t *testing.T) {
 func TestRange(t *testing.T) {
 	sl := New(4, 0.5)
 	entries := []types.Entry{
-		{Key: "key1", Value: []byte("value1"), Tombstone: false},
-		{Key: "key2", Value: []byte("value2"), Tombstone: false},
-		{Key: "key3", Value: []byte("value3"), Tombstone: false},
-		{Key: "key4", Value: []byte("value4"), Tombstone: false},
+		{Key: "key1@1", Value: []byte("value1"), Tombstone: false},
+		{Key: "key2@1", Value: []byte("value2"), Tombstone: false},
+		{Key: "key3@1", Value: []byte("value3"), Tombstone: false},
+		{Key: "key4@1", Value: []byte("value4"), Tombstone: false},
 	}
 
 	for _, entry := range entries {
@@ -66,11 +66,11 @@ func TestRange(t *testing.T) {
 		start, end string
 		expected   []types.Entry
 	}{
-		{"key1", "key3", entries[:2]},
-		{"key2", "key4", entries[1:3]},
-		{"key1", "key5", entries},
-		{"key3", "key3", nil},
-		{"key0", "key1", nil},
+		{"key1@1", "key3@1", entries[:2]},
+		{"key2@1", "key4@1", entries[1:3]},
+		{"key1@1", "key5@1", entries},
+		{"key3@1", "key3@1", nil},
+		{"key0@1", "key1@1", nil},
 	}
 
 	for _, tt := range tests {
@@ -81,42 +81,42 @@ func TestRange(t *testing.T) {
 
 func TestGetNonExistent(t *testing.T) {
 	sl := New(4, 0.5)
-	result, found := sl.Get("nonexistent")
+	result, found := sl.Get("nonexistent@1")
 	assert.False(t, found)
 	assert.Equal(t, types.Entry{}, result)
 }
 
 func TestDelete(t *testing.T) {
 	sl := New(4, 0.5)
-	entry1 := types.Entry{Key: "key1", Value: []byte("value1"), Tombstone: false}
-	entry2 := types.Entry{Key: "key2", Value: []byte("value2"), Tombstone: false}
+	entry1 := types.Entry{Key: "key1@1", Value: []byte("value1"), Tombstone: false}
+	entry2 := types.Entry{Key: "key2@1", Value: []byte("value2"), Tombstone: false}
 	sl.Set(entry1)
 	sl.Set(entry2)
 
 	// Delete an existing entry
-	deleted := sl.Delete("key1")
+	deleted := sl.Delete("key1@1")
 	assert.True(t, deleted)
 
 	// Verify the entry is deleted
-	_, found := sl.Get("key1")
+	_, found := sl.Get("key1@1")
 	assert.False(t, found)
 
 	// Verify the other entry still exists
-	result, found := sl.Get("key2")
+	result, found := sl.Get("key2@1")
 	assert.True(t, found)
 	assert.Equal(t, entry2, result)
 
 	// Try to delete a non-existent entry
-	deleted = sl.Delete("nonexistent")
+	deleted = sl.Delete("nonexistent@1")
 	assert.False(t, deleted)
 }
 
 func TestAll(t *testing.T) {
 	sl := New(4, 0.5)
 	entries := []types.Entry{
-		{Key: "key1", Value: []byte("value1"), Tombstone: false},
-		{Key: "key2", Value: nil, Tombstone: true},
-		{Key: "key3", Value: []byte("value3"), Tombstone: false},
+		{Key: "key1@1", Value: []byte("value1"), Tombstone: false},
+		{Key: "key2@1", Value: nil, Tombstone: true},
+		{Key: "key3@1", Value: []byte("value3"), Tombstone: false},
 	}
 
 	for _, entry := range entries {
@@ -132,7 +132,7 @@ func TestAll(t *testing.T) {
 
 func TestReset(t *testing.T) {
 	sl := New(4, 0.5)
-	entry := types.Entry{Key: "key1", Value: []byte("value1"), Tombstone: false}
+	entry := types.Entry{Key: "key1@1", Value: []byte("value1"), Tombstone: false}
 	sl.Set(entry)
 
 	sl = sl.Reset()
@@ -192,7 +192,7 @@ func TestGreaterOrEqual(t *testing.T) {
 		{types.KeyWithTs("a", 2), types.KeyWithTs("a", 2), true},
 		{types.KeyWithTs("a", 3), types.KeyWithTs("a", 2), true},
 		{types.KeyWithTs("a", 0), types.KeyWithTs("b", 1), true},
-		{"aa", types.KeyWithTs("b", 1), true},
+		{types.KeyWithTs("aa", 0), types.KeyWithTs("b", 1), true},
 		{types.KeyWithTs("d", 1), "", false},
 	}
 
@@ -204,15 +204,6 @@ func TestGreaterOrEqual(t *testing.T) {
 				tt.searchKey, tt.expectKey, result.Key)
 		}
 	}
-
-	// Verify returning the latest version when searching by base key name
-	entry, found := sl.LowerBound("a")
-	assert.True(t, found)
-	assert.Equal(t, types.KeyWithTs("a", 2), entry.Key) // Should return the latest version of a: a@2
-
-	entry, found = sl.LowerBound("c")
-	assert.True(t, found)
-	assert.Equal(t, types.KeyWithTs("c", 3), entry.Key) // Should return the latest version of c: c@3
 }
 
 func TestScanWithVersions(t *testing.T) {
@@ -232,7 +223,7 @@ func TestScanWithVersions(t *testing.T) {
 	}
 
 	// Test range query
-	results := sl.Scan("a", "c")
+	results := sl.Scan("a@99", "c@99")
 	assert.Equal(t, 4, len(results))
 
 	// Due to CompareKeys sorting, results should be sorted by key name ascending, and by timestamp descending for the same key
