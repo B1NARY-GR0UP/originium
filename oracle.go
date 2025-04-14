@@ -87,7 +87,7 @@ func (o *oracle) newCommitTs(txn *Txn) (uint64, bool) {
 	defer o.Unlock()
 
 	if o.hasConflict(txn) {
-		return 0, false
+		return 0, true
 	}
 
 	o.doneRead(txn)

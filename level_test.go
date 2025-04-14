@@ -193,3 +193,5 @@ func TestManagerScan(t *testing.T) {
 //		assert.True(t, found)
 //		assert.Equal(t, fmt.Sprintf("key%d", i), entry.Key)
 //		assert.Equal(t, []byte(fmt.Sprintf("value%d", i)), entry.Value)
+//	}
+//}
