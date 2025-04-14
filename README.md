@@ -40,15 +40,15 @@ func main() {
 
 ```go
 err := db.View(func(txn *originium.Txn) error {
-    // ...
+// ...
 
-	res, ok := txn.Get("hello")
-    if !ok {
-        // key not found
-    }
-	
-	// ...
-    return nil
+res, ok := txn.Get("hello")
+if !ok {
+// key not found
+}
+
+// ...
+return nil
 })
 ```
 
@@ -56,14 +56,14 @@ err := db.View(func(txn *originium.Txn) error {
 
 ```go
 err := db.Update(func(txn *originium.Txn) error {
-    // ...
+// ...
 
-	if err := txn.Set("hello", []byte("originium")); err != nil {
-        return err
-    }
-	
-	// ...
-    return nil
+if err := txn.Set("hello", []byte("originium")); err != nil {
+return err
+}
+
+// ...
+return nil
 })
 ```
 
@@ -77,13 +77,13 @@ defer txn.Discard()
 // ...
 
 if err := txn.Delete("hello"); err != nil {
-    return err
+return err
 }
 
 // ...
 
 if err := txn.Commit(); err != nil {
-    return err
+return err
 }
 ```
 
