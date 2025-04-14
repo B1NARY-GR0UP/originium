@@ -10,41 +10,81 @@ go get -u github.com/B1NARY-GR0UP/originium
 
 ## Usage
 
-- **Open**
+### Opening a Database
 
 ```go
-// use originium.Config to customize the db behavior
-db, err := originium.Open("your-dir", originium.DefaultConfig)
+package main
+
+import (
+	"log"
+
+	"github.com/B1NARY-GR0UP/originium"
+)
+
+func main() {
+	// Use originium.Config to customize your db behavior
+	db, err := originium.Open("your-dir", originium.DefaultConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	// ...
+}
 ```
 
-- **Set**
+### Transactions
+
+- Read-only transaction
 
 ```go
-db.Set("hello", []byte("originium"))
-``` 
+err := db.View(func(txn *originium.Txn) error {
+    // ...
 
-- **Get**
- 
-```go
-v, ok := db.Get("hello")
+	res, ok := txn.Get("hello")
+    if !ok {
+        // key not found
+    }
+	
+	// ...
+    return nil
+})
 ```
 
-- **Scan**
+- Read-write transaction
 
 ```go
-entries := db.Scan("start", "end")
+err := db.Update(func(txn *originium.Txn) error {
+    // ...
+
+	if err := txn.Set("hello", []byte("originium")); err != nil {
+        return err
+    }
+	
+	// ...
+    return nil
+})
 ```
 
-- **Delete**
+- Manually
 
 ```go
-db.Delete("hello")
-```
+// start a read-write transaction manually
+txn := db.Begin(true)
+defer txn.Discard()
 
-- **Close**
+// ...
 
-```go
-db.Close()
+if err := txn.Delete("hello"); err != nil {
+    return err
+}
+
+// ...
+
+if err := txn.Commit(); err != nil {
+    return err
+}
 ```
 
 ## Blogs
