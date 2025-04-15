@@ -36,6 +36,8 @@ func main() {
 
 ### Transactions
 
+ORIGINIUM supports concurrent ACID transactions with Serializable Snapshot Isolation (SSI) guarantees.
+
 - Read-only transaction
 
 ```go
