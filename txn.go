@@ -35,8 +35,7 @@ type Txn struct {
 
 	db *DB
 
-	readTs   uint64
-	commitTs uint64
+	readTs uint64
 
 	readsFp  []uint64
 	writesFp map[uint64]struct{}
