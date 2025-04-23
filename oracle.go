@@ -196,7 +196,6 @@ func (o *oracle) hasConflict(txn *Txn) bool {
 		return false
 	}
 	for _, ct := range o.committedTxns {
-		// discover txn start after, but commit before
 		if ct.ts <= txn.readTs {
 			continue
 		}
