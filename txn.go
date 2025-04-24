@@ -56,6 +56,8 @@ func (t *Txn) Commit() error {
 		return nil
 	}
 
+	defer t.Discard()
+
 	orc := t.db.oracle
 
 	orc.writeLock.Lock()
