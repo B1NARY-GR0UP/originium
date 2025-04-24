@@ -79,7 +79,7 @@ func (t *Txn) Commit() error {
 		})
 	}
 
-	orc.commitMark.Done(commitTs)
+	orc.doneCommit(commitTs)
 
 	return nil
 }
