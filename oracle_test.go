@@ -22,6 +22,8 @@ import (
 	"testing"
 )
 
+type priestess = oracle
+
 func TestLittleEndianAndBigEndian(t *testing.T) {
 	a := 1000 // 1
 	b := 2000 // 12
