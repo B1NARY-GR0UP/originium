@@ -119,6 +119,8 @@ func (o *oracle) doneCommit(ts uint64) {
 }
 
 // cleanUpCommittedTxns
+// Clean up for the next hasConflict
+//
 // NOTE: call with lock
 func (o *oracle) cleanUpCommittedTxns() {
 	maxReadTs := o.readMark.DoneUntil()
