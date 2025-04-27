@@ -53,6 +53,7 @@ type oracle struct {
 }
 
 type committedTxn struct {
+	// commitTs
 	ts       uint64
 	writesFp map[uint64]struct{}
 }
