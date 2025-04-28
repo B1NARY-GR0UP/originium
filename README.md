@@ -91,6 +91,7 @@ if err := txn.Commit(); err != nil {
 
 ## Blogs
 
+- [How to Implement Serializable Snapshot Isolation for Transactions](https://dev.to/justlorain/how-to-implement-serializable-snapshot-isolation-for-transactions-4j38)
 - [Building an LSM-Tree Storage Engine from Scratch](https://dev.to/justlorain/building-an-lsm-tree-storage-engine-from-scratch-3eom)
 
 ## Credits
