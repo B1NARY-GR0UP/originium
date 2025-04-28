@@ -16,5 +16,5 @@ package originium
 
 const (
 	Name    = "originium"
-	Version = "v0.2.0"
+	Version = "v0.2.1"
 )
