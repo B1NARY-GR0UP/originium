@@ -93,6 +93,17 @@ if err := txn.Commit(); err != nil {
 
 - [Building an LSM-Tree Storage Engine from Scratch](https://dev.to/justlorain/building-an-lsm-tree-storage-engine-from-scratch-3eom)
 
+## Credits
+
+Sincere appreciation to the following repositories that made the development of ORIGINIUM possible.
+
+- [badger](https://github.com/hypermodeinc/badger)
+- [compress](https://github.com/klauspost/compress)
+- [frugal](https://github.com/cloudwego/frugal)
+- [murmur3](https://github.com/spaolacci/murmur3)
+- [testify](https://github.com/stretchr/testify)
+- [thrift](https://github.com/apache/thrift)
+
 ## License
 
 ORIGINIUM is distributed under the [Apache License 2.0](./LICENSE). The licenses of third party dependencies of ORIGINIUM are explained [here](./licenses).
