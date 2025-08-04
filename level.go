@@ -68,8 +68,6 @@ func newLevelManager(db *DB) *levelManager {
 }
 
 func (lm *levelManager) recover() int64 {
-	lm.mu.Lock()
-	defer lm.mu.Unlock()
 	defer utils.Elapsed(time.Now(), lm.logger, "level index recover")
 
 	files, err := os.ReadDir(lm.dir)

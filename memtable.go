@@ -52,8 +52,6 @@ func newMemtable(dir string, maxLevel int, p float64) *memtable {
 }
 
 func (mt *memtable) recover() int64 {
-	mt.mu.Lock()
-	defer mt.mu.Unlock()
 	defer utils.Elapsed(time.Now(), mt.logger, "memtable recover")
 
 	files, err := os.ReadDir(mt.dir)
